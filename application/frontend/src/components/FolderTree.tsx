@@ -29,7 +29,7 @@ interface TextDTO {
 
 function FolderItem({ folder, level }: { folder: FolderDTO; level: number }) {
   const [expanded, setExpanded] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [children, setChildren] = useState<FolderDTO[]>([]);
   const [texts, setTexts] = useState<TextDTO[]>([]);
   const [params, setParams] = useSearchParams();

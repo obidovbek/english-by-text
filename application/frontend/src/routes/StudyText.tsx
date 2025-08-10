@@ -9,7 +9,6 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Chip,
   TextField,
   Snackbar,
   Switch,
@@ -48,7 +47,6 @@ export default function StudyText() {
   const [error, setError] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
   const [tokens, setTokens] = useState<TokenDTO[] | null>(null);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
   const [intervalMs, setIntervalMs] = useState(3000);
@@ -57,9 +55,6 @@ export default function StudyText() {
   const [showCorrect, setShowCorrect] = useState(false);
   const [buildPool, setBuildPool] = useState<string[]>([]);
   const [buildAnswer, setBuildAnswer] = useState<string[]>([]);
-  const [buildResult, setBuildResult] = useState<"idle" | "ok" | "error">(
-    "idle"
-  );
 
   // Load text
   useEffect(() => {
@@ -159,7 +154,6 @@ export default function StudyText() {
     if (!currentSentence) {
       setBuildPool([]);
       setBuildAnswer([]);
-      setBuildResult("idle");
       setShowCorrect(false);
       return;
     }
@@ -171,7 +165,6 @@ export default function StudyText() {
     }
     setBuildPool(parts);
     setBuildAnswer([]);
-    setBuildResult("idle");
     setShowCorrect(false);
   }, [currentSentence?.id]);
 
@@ -196,12 +189,10 @@ export default function StudyText() {
   function checkBuilt() {
     if (!expected) return;
     if (built === expected) {
-      setBuildResult("ok");
       setToast(t("correct"));
       setShowCorrect(false);
       if (canNext) setTimeout(() => setIdx((i) => i + 1), 400);
     } else {
-      setBuildResult("error");
       setToast(t("incorrect"));
       setShowCorrect(true);
     }
@@ -211,7 +202,6 @@ export default function StudyText() {
     const parts = (currentSentence?.en || "").split(/\s+/).filter(Boolean);
     setBuildAnswer(parts);
     setBuildPool([]);
-    setBuildResult("ok");
     setShowCorrect(true);
   }
 
@@ -233,7 +223,6 @@ export default function StudyText() {
     fields: Partial<{ en: string; pos: string; note: string }>
   ) {
     if (!currentSentence) return;
-    setSaving(true);
     try {
       const updated = await patchJSON<
         Partial<{ en: string; pos?: string; note?: string }>,
@@ -249,29 +238,6 @@ export default function StudyText() {
       setToast("Saved");
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveSentenceEn(en: string) {
-    if (!currentSentence) return;
-    setSaving(true);
-    try {
-      await patchJSON(`/api/sentences/${currentSentence.id}`, { en });
-      setText((prev) => {
-        if (!prev) return prev;
-        const copy = { ...prev };
-        copy.sentences = prev.sentences.map((s) =>
-          s.id === currentSentence.id ? { ...s, en } : s
-        );
-        return copy;
-      });
-      setToast("Saved");
-    } catch (e) {
-      setToast(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -455,8 +421,6 @@ export default function StudyText() {
                   setBuildPool(
                     (currentSentence?.en || "").split(/\s+/).filter(Boolean)
                   );
-                  setBuildResult("idle");
-                  setShowCorrect(false);
                 }}
               >
                 {t("reset")}
