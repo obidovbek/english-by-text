@@ -1,0 +1,71 @@
+{
+  "name": "englishbytext-backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsup",
+    "start": "node dist/server.js",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:seed": "sequelize-cli db:seed:all",
+    "db:seed:undo": "sequelize-cli db:seed:undo:all",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.2",
+    "sequelize-cli": "^6.6.2",
+    "ts-node-dev": "^2.0.0",
+    "tsup": "^8.1.0",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "fastify": "^4.27.2",
+    "fastify-plugin": "^4.5.1",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.4"
+  },
+  "tsup": {
+    "entry": [
+      "src/server.ts"
+    ],
+    "format": [
+      "cjs"
+    ],
+    "sourcemap": true,
+    "target": "node18",
+    "outDir": "dist",
+    "clean": true,
+    "minify": false
+  },
+  "eslintConfig": {
+    "env": {
+      "es2022": true,
+      "node": true
+    },
+    "parserOptions": {
+      "ecmaVersion": "latest",
+      "sourceType": "module"
+    },
+    "extends": [
+      "eslint:recommended"
+    ],
+    "ignorePatterns": [
+      "dist",
+      "node_modules"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true,
+    "semi": true,
+    "printWidth": 100,
+    "trailingComma": "all"
+  }
+}
