@@ -19,8 +19,11 @@ ENV NODE_ENV=production
 COPY . .
 RUN npm run build
 
-# Optional production stage (serving static via nginx would be recommended)
+# Production web server
 FROM nginx:alpine AS production
+ARG INSTANCE_NAME=englishbytext
 COPY --from=build /app/dist /usr/share/nginx/html
+# Custom nginx config per instance name (defaults to englishbytext)
+COPY ./nginx/default-englishbytext /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"] 
