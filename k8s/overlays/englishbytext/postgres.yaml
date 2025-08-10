@@ -1,0 +1,83 @@
+# ------------------------
+# PersistentVolume
+# ------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv-englishbytext
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /opt/local-path-provisioner/englishbytext-postgres-data
+
+---
+# ------------------------
+# PersistentVolumeClaim
+# ------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc-englishbytext
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: postgres-pv-englishbytext
+  storageClassName: local-path
+
+---
+# ------------------------
+# PostgreSQL Service
+# ------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service-englishbytext
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres-englishbytext
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+# ------------------------
+# PostgreSQL Deployment
+# ------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-englishbytext
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-englishbytext
+  template:
+    metadata:
+      labels:
+        app: postgres-englishbytext
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14
+          envFrom:
+            - configMapRef:
+                name: app-englishbytext-env
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-storage
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc-englishbytext

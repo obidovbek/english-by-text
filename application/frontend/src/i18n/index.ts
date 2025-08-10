@@ -26,6 +26,25 @@ const uz: Messages = {
   andHelloName: "— Salom, {name}!",
   errorLoadFolders: "Jildlarni yuklab bo‘lmadi",
   errorCreateFolder: "Jild yaratishda xatolik",
+  // Texts
+  addText: "Matn qo‘shish",
+  titleLabel: "Sarlavha",
+  uzRawLabel: "O‘zbekcha matn",
+  enRawLabel: "Inglizcha matn",
+  createText: "Matnni yaratish",
+  textCreated: "Matn yaratildi",
+  prev: "Oldingi",
+  next: "Keyingi",
+  ofTotal: "{i} / {n}",
+  // Build mode
+  buildTitle: "Gapni tuzing",
+  check: "Tekshirish",
+  correct: "To‘g‘ri!",
+  incorrect: "Noto‘g‘ri, yana urinib ko‘ring",
+  reset: "Qayta",
+  reveal: "Ko‘rsatish",
+  continue: "Davom etish",
+  correctAnswer: "To‘g‘ri javob:",
 };
 
 const en: Messages = {
@@ -54,6 +73,25 @@ const en: Messages = {
   andHelloName: "— Hello, {name}!",
   errorLoadFolders: "Failed to load folders",
   errorCreateFolder: "Failed to create folder",
+  // Texts
+  addText: "Add Text",
+  titleLabel: "Title",
+  uzRawLabel: "Uzbek text",
+  enRawLabel: "English text",
+  createText: "Create Text",
+  textCreated: "Text created",
+  prev: "Prev",
+  next: "Next",
+  ofTotal: "{i} / {n}",
+  // Build mode
+  buildTitle: "Build the sentence",
+  check: "Check",
+  correct: "Correct!",
+  incorrect: "Incorrect, try again",
+  reset: "Reset",
+  reveal: "Reveal",
+  continue: "Continue",
+  correctAnswer: "Correct answer:",
 };
 
 const dict: Record<string, Messages> = { uz, en };

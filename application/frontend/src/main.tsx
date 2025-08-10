@@ -5,6 +5,7 @@ import "./index.css";
 import "./App.css";
 import App from "./App.tsx";
 import Folders from "./routes/Folders.tsx";
+import StudyText from "./routes/StudyText.tsx";
 
 const rootElement = document.getElementById("root")!;
 // Ensure the app spans the full viewport width despite Vite's default body flex styles
@@ -28,6 +29,7 @@ try {
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/folders", element: <Folders /> },
+  { path: "/texts/:id", element: <StudyText /> },
 ]);
 
 createRoot(rootElement).render(

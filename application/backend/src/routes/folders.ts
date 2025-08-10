@@ -10,6 +10,8 @@ import { FastifyPluginAsync } from 'fastify';
 //   curl -s -X POST http://localhost:4000/folders -H 'Content-Type: application/json' -d '{"name":"Stories"}' | jq .
 // Create subfolder under 123
 //   curl -s -X POST http://localhost:4000/folders -H 'Content-Type: application/json' -d '{"name":"Tales","parentId":123}' | jq .
+// Delete folder 123 (with cascade)
+//   curl -s -X DELETE http://localhost:4000/api/folders/123 -H 'x-user-id: 1' -i
 
 function getUserId(request: any): number | undefined {
   const reqAny = request as any;
@@ -118,6 +120,20 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
         request.log.error({ err }, 'Failed to create folder');
         return reply.code(500).send({ error: 'Failed to create folder' });
       }
+    });
+
+    // DELETE -> delete folder (cascade)
+    fastify.delete(`${base}/:id`, async (request, reply) => {
+      const userId = getUserId(request);
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+      const id = Number((request.params as any).id);
+      if (!Number.isFinite(id)) return reply.code(400).send({ error: 'Invalid id' });
+
+      const exists = await fastify.models.Folder.findOne({ where: { id, userId } });
+      if (!exists) return reply.code(404).send({ error: 'Not found' });
+
+      await fastify.models.Folder.destroy({ where: { id, userId } });
+      return reply.code(204).send();
     });
   }
 };

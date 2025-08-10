@@ -1,0 +1,18 @@
+namespace: englishbytext
+
+resources:
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - ingress.yaml
+  - frontend-deployment.yaml
+  - frontend-service.yaml
+  - postgres.yaml
+  - middleware.yaml
+
+configMapGenerator:
+  - name: app-englishbytext-env
+    envs:
+      - .env
+
+generatorOptions:
+  disableNameSuffixHash: true

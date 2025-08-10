@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import {
+  ThemeProvider,
+  createTheme,
+  responsiveFontSizes,
+} from "@mui/material/styles";
 import {
   CssBaseline,
   AppBar,
@@ -71,13 +75,52 @@ function App() {
     }
   }, [isTelegram, user, isLoading, login]);
 
-  const theme = useMemo(
+  let theme = useMemo(
     () =>
       createTheme({
         palette: { mode },
+        typography: {
+          fontFamily:
+            "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
+          h3: { fontWeight: 700 },
+          h4: { fontSize: "1.8rem", fontWeight: 700 },
+          h6: { fontSize: "1.1rem", fontWeight: 700 },
+          body1: { fontSize: "1rem", lineHeight: 1.6 },
+          body2: { fontSize: "0.95rem" },
+          button: { textTransform: "none", fontWeight: 600 },
+        },
+        components: {
+          MuiButton: {
+            defaultProps: { size: "large" },
+            styleOverrides: {
+              root: {
+                minHeight: 44,
+                borderRadius: 12,
+                paddingLeft: 16,
+                paddingRight: 16,
+              },
+            },
+          },
+          MuiIconButton: {
+            styleOverrides: {
+              root: { width: 44, height: 44, borderRadius: 12 },
+            },
+          },
+          MuiListItemButton: {
+            styleOverrides: { root: { minHeight: 48, borderRadius: 12 } },
+          },
+          MuiTextField: {
+            defaultProps: { size: "medium" },
+          },
+          MuiContainer: {
+            styleOverrides: { root: { paddingLeft: 16, paddingRight: 16 } },
+          },
+        },
       }),
     [mode]
   );
+
+  theme = responsiveFontSizes(theme);
 
   const toggleColorMode = () => {
     setMode((prev) => (prev === "light" ? "dark" : "light"));
@@ -110,7 +153,7 @@ function App() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md">
+      <Container maxWidth="sm">
         <Box
           sx={{
             minHeight: "calc(100vh - 64px)",
@@ -121,6 +164,7 @@ function App() {
             gap: 2,
             bgcolor: "background.default",
             color: "text.primary",
+            px: 1,
           }}
         >
           <Typography variant="h3" component="h1" align="center">

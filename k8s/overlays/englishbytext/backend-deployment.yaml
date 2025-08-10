@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: englishbytext-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: englishbytext-backend
+  template:
+    metadata:
+      labels:
+        app: englishbytext-backend
+    spec:
+      containers:
+        - name: backend
+          image: englishbytext-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: app-englishbytext-env
