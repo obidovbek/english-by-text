@@ -67,10 +67,13 @@ export function useTelegramAuth(): TelegramAuthState {
       }
 
       setUser(result.user);
+      // Persist user id for API header
+      localStorage.setItem("userId", String(result.user.id));
     } catch (e) {
       const message = e instanceof Error ? e.message : "Login failed";
       setError(message);
       setUser(null);
+      localStorage.removeItem("userId");
     } finally {
       setIsLoading(false);
     }

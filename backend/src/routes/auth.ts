@@ -3,7 +3,7 @@ import { FastifyPluginAsync } from 'fastify';
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Expected body from Telegram Web App initData parsing on client
   // { telegramId, firstName, lastName?, username?, languageCode?, photoUrl?, phone? }
-  fastify.post('/auth/telegram', async (request, _reply) => {
+  const handler = async (request: any, _reply: any) => {
     console.log('auth/telegram', request.body);
     const body = request.body as Partial<{
       telegramId: number | string;
@@ -45,7 +45,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return { ok: true, user: created };
-  });
+  };
+
+  fastify.post('/auth/telegram', handler);
+  fastify.post('/api/auth/telegram', handler);
 };
 
 export default authRoutes;

@@ -1,8 +1,26 @@
+:root {
+  --tg-bg: #121212;
+  --tg-text: #ffffff;
+  --tg-accent: #2ea6ff;
+}
+
+body {
+  background-color: var(--tg-bg);
+  color: var(--tg-text);
+}
+
+a {
+  color: var(--tg-accent);
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.MuiContainer-root {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 
 .logo {

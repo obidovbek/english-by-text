@@ -7,6 +7,8 @@ import {
   InferAttributes,
   InferCreationAttributes,
   CreationOptional,
+  NonAttribute,
+  ForeignKey,
 } from 'sequelize';
 
 declare module 'fastify' {
@@ -14,6 +16,7 @@ declare module 'fastify' {
     sequelize: Sequelize;
     models: {
       User: typeof UserModel;
+      Folder: typeof FolderModel;
     };
   }
 }
@@ -27,6 +30,22 @@ class UserModel extends Model<InferAttributes<UserModel>, InferCreationAttribute
   declare phone: string | null;
   declare languageCode: string | null;
   declare photoUrl: string | null;
+}
+
+class FolderModel extends Model<
+  InferAttributes<FolderModel>,
+  InferCreationAttributes<FolderModel>
+> {
+  declare id: CreationOptional<number>;
+  declare userId: ForeignKey<UserModel['id']>;
+  declare name: string;
+  declare parentId: number | null;
+
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+
+  declare parent?: NonAttribute<FolderModel | null>;
+  declare children?: NonAttribute<FolderModel[]>;
 }
 
 const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
@@ -81,10 +100,53 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
     { sequelize, modelName: 'User', tableName: 'Users', timestamps: true },
   );
 
+  FolderModel.init(
+    {
+      id: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      userId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+      },
+      name: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        set(value: string) {
+          // trim on set
+          this.setDataValue('name', (value ?? '').trim());
+        },
+      },
+      parentId: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+    },
+    { sequelize, modelName: 'Folder', tableName: 'Folders', timestamps: true },
+  );
+
+  // Associations
+  FolderModel.belongsTo(UserModel, { foreignKey: 'userId' });
+  FolderModel.belongsTo(FolderModel, { as: 'parent', foreignKey: 'parentId' });
+  FolderModel.hasMany(FolderModel, { as: 'children', foreignKey: 'parentId' });
+
   await sequelize.authenticate();
 
   fastify.decorate('sequelize', sequelize);
-  fastify.decorate('models', { User: UserModel });
+  fastify.decorate('models', { User: UserModel, Folder: FolderModel });
 
   fastify.addHook('onClose', async (instance) => {
     await instance.sequelize.close();

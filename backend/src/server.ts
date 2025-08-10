@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import sequelizePlugin from './plugins/sequelize';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
+import foldersRoutes from './routes/folders';
 
 const app = Fastify({
   logger: true,
@@ -11,6 +12,7 @@ const app = Fastify({
 app.register(sequelizePlugin);
 app.register(healthRoutes);
 app.register(authRoutes);
+app.register(foldersRoutes);
 
 const port = Number(process.env.PORT) || 4000;
 const host = '0.0.0.0';

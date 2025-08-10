@@ -13,14 +13,21 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
-import { Brightness4, Brightness7 } from "@mui/icons-material";
+import {
+  Brightness4,
+  Brightness7,
+  Folder as FolderIcon,
+} from "@mui/icons-material";
 import { useTelegramAuth } from "./hooks/useTelegramAuth";
+import { useNavigate } from "react-router-dom";
+import { setLocale, t } from "./i18n";
 
 function App() {
   const isTWA = Boolean(window.Telegram?.WebApp);
   const [mode, setMode] = useState<"light" | "dark">("light");
   const [tgFirstName, setTgFirstName] = useState<string | undefined>(undefined);
   const { user, isLoading, error, isTelegram, login } = useTelegramAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isTWA) return;
@@ -33,6 +40,9 @@ function App() {
     if (wa.colorScheme === "dark" || wa.colorScheme === "light") {
       setMode(wa.colorScheme);
     }
+
+    const lang = wa.initDataUnsafe?.user?.language_code || "en";
+    setLocale(/^uz/i.test(lang) ? "uz" : "en");
 
     // Optionally show user's first name when available
     const firstName = wa.initDataUnsafe?.user?.first_name;
@@ -48,7 +58,6 @@ function App() {
     wa.onEvent("themeChanged", handler);
 
     return () => {
-      // offEvent may not exist on older SDKs; guard it
       try {
         wa.offEvent?.("themeChanged", handler);
       } catch {}
@@ -80,8 +89,15 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Uz→En Learning
+            {t("appTitle")}
           </Typography>
+          <Button
+            color="inherit"
+            startIcon={<FolderIcon />}
+            onClick={() => navigate("/folders")}
+          >
+            {t("folders")}
+          </Button>
           {!isTWA && (
             <IconButton
               color="inherit"
@@ -108,11 +124,13 @@ function App() {
           }}
         >
           <Typography variant="h3" component="h1" align="center">
-            Hello, Uzbek-English Learning App
+            {t("helloTitle")}
           </Typography>
           <Typography variant="body1" component="p" align="center">
-            Environment: {isTWA ? "Telegram WebApp ✅" : "Browser 🌐"}
-            {isTWA && tgFirstName ? ` — Hello, ${tgFirstName}!` : ""}
+            {t("environmentTWA")}{" "}
+            {isTWA && tgFirstName
+              ? ` ${t("andHelloName", { name: tgFirstName })}`
+              : ""}
           </Typography>
 
           {/* Auth UI */}
@@ -123,21 +141,22 @@ function App() {
                 disabled
                 startIcon={<CircularProgress size={18} />}
               >
-                Logging in...
+                {t("loggingIn")}
               </Button>
             ) : user ? (
-              <Alert severity="success">Logged in as: {user.firstName}</Alert>
+              <Alert severity="success">
+                {t("loggedInAs")} {user.firstName}
+              </Alert>
             ) : (
               <Button variant="contained" onClick={login}>
-                Login with Telegram
+                {t("loginWithTelegram")}
               </Button>
             )
           ) : (
             <Tooltip title="Open inside Telegram to log in">
-              {/* span wrapper so Tooltip works on disabled button */}
               <span>
                 <Button variant="contained" disabled>
-                  Login with Telegram
+                  {t("loginWithTelegram")}
                 </Button>
               </span>
             </Tooltip>
