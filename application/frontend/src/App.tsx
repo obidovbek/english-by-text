@@ -16,15 +16,18 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   Brightness4,
   Brightness7,
   Folder as FolderIcon,
+  Translate as TranslateIcon,
 } from "@mui/icons-material";
 import { useTelegramAuth } from "./hooks/useTelegramAuth";
 import { useNavigate } from "react-router-dom";
-import { setLocale, t } from "./i18n";
+import { ensureInitialLocale, locales, setLocale, t } from "./i18n";
 
 function App() {
   const isTWA = Boolean(window.Telegram?.WebApp);
@@ -32,6 +35,11 @@ function App() {
   const [tgFirstName, setTgFirstName] = useState<string | undefined>(undefined);
   const { user, isLoading, error, isTelegram, login } = useTelegramAuth();
   const navigate = useNavigate();
+
+  // Initialize locale once
+  useEffect(() => {
+    ensureInitialLocale();
+  }, []);
 
   useEffect(() => {
     if (!isTWA) return;
@@ -44,9 +52,6 @@ function App() {
     if (wa.colorScheme === "dark" || wa.colorScheme === "light") {
       setMode(wa.colorScheme);
     }
-
-    const lang = wa.initDataUnsafe?.user?.language_code || "en";
-    setLocale(/^uz/i.test(lang) ? "uz" : "en");
 
     // Optionally show user's first name when available
     const firstName = wa.initDataUnsafe?.user?.first_name;
@@ -126,6 +131,21 @@ function App() {
     setMode((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  // Language menu state
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleLangClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleLangClose = () => setAnchorEl(null);
+
+  const handleSelectLocale = (code: string) => {
+    setLocale(code);
+    handleLangClose();
+    // Force a re-render of strings; simplest is to reload quickly
+    window.location.reload();
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -141,6 +161,20 @@ function App() {
           >
             {t("folders")}
           </Button>
+          <IconButton
+            color="inherit"
+            onClick={handleLangClick}
+            aria-label="language"
+          >
+            <TranslateIcon />
+          </IconButton>
+          <Menu anchorEl={anchorEl} open={open} onClose={handleLangClose}>
+            {locales.map((l) => (
+              <MenuItem key={l.code} onClick={() => handleSelectLocale(l.code)}>
+                {l.label}
+              </MenuItem>
+            ))}
+          </Menu>
           {!isTWA && (
             <IconButton
               color="inherit"

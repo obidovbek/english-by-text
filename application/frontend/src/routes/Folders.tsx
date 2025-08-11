@@ -224,11 +224,11 @@ export default function Folders() {
         mainFolderCache.clear();
         clearFolderCache();
 
-        setToast("Folder renamed");
+        setToast(t("folderRenamed"));
         await loadFolders();
         return true;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed";
+        const msg = e instanceof Error ? e.message : t("failed");
         if (/already exists/i.test(msg)) {
           setRenameError(t("nameExists"));
         } else {
@@ -243,7 +243,7 @@ export default function Folders() {
   );
 
   const handleDeleteFolder = useCallback(async (folderId: number | string) => {
-    if (!confirm("Delete this folder and its contents?")) return;
+    if (!confirm(t("confirmDeleteFolder"))) return;
 
     try {
       await deleteJSON(`/api/folders/${folderId}`);
@@ -254,12 +254,12 @@ export default function Folders() {
 
       setFolders((prev) => prev.filter((x) => x.id !== folderId));
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed");
+      alert(e instanceof Error ? e.message : t("failed"));
     }
   }, []);
 
   const handleDeleteText = useCallback(async (textId: number | string) => {
-    if (!confirm("Delete this text?")) return;
+    if (!confirm(t("confirmDeleteText"))) return;
 
     try {
       await deleteJSON(`/api/texts/${textId}`);
@@ -268,7 +268,7 @@ export default function Folders() {
       // Clear folder cache since text count changed
       clearFolderCache();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed");
+      alert(e instanceof Error ? e.message : t("failed"));
     }
   }, []);
 
@@ -490,7 +490,7 @@ export default function Folders() {
             variant="subtitle1"
             sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
           >
-            Texts
+            {t("texts")}
           </Typography>
           {isLoading ? (
             <Stack spacing={1}>
@@ -507,7 +507,7 @@ export default function Folders() {
             <List>{memoizedTexts}</List>
           ) : (
             <Typography variant="body2" sx={{ color: "#b0b0b0" }}>
-              No texts in this folder yet
+              {t("noTextsYet")}
             </Typography>
           )}
         </Box>
@@ -518,7 +518,7 @@ export default function Folders() {
         variant="subtitle1"
         sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
       >
-        Folders
+        {t("folders")}
       </Typography>
       {isLoading ? (
         <Stack spacing={1}>
@@ -585,7 +585,7 @@ export default function Folders() {
               handleMenuClose();
             }}
           >
-            Rename
+            {t("rename")}
           </MenuItem>,
           <MenuItem
             key="delete"
@@ -600,7 +600,7 @@ export default function Folders() {
               },
             }}
           >
-            Delete
+            {t("delete")}
           </MenuItem>,
         ]}
         {menuType === "text" && [
@@ -617,12 +617,12 @@ export default function Folders() {
                 setEditTextOpen(true);
                 handleMenuClose();
               } catch (e) {
-                alert(e instanceof Error ? e.message : "Failed to open editor");
+                alert(e instanceof Error ? e.message : t("failedOpenEditor"));
                 handleMenuClose();
               }
             }}
           >
-            Edit
+            {t("edit")}
           </MenuItem>,
           <MenuItem
             key="delete"
@@ -637,7 +637,7 @@ export default function Folders() {
               },
             }}
           >
-            Delete
+            {t("delete")}
           </MenuItem>,
         ]}
       </Menu>
@@ -810,7 +810,7 @@ export default function Folders() {
                 !uzRaw.trim() ||
                 !enRaw.trim()
               ) {
-                setTextError(t("errorCreateFolder"));
+                setTextError(t("pleaseFillAllFieldsCorrectly"));
                 return;
               }
               try {
@@ -834,8 +834,7 @@ export default function Folders() {
                 clearFolderCache();
                 navigate(`/texts/${created.id}`);
               } catch (e) {
-                const msg =
-                  e instanceof Error ? e.message : t("errorCreateFolder");
+                const msg = e instanceof Error ? e.message : t("failed");
                 setTextError(msg);
               } finally {
                 setIsCreatingText(false);
@@ -873,7 +872,7 @@ export default function Folders() {
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>Rename folder</DialogTitle>
+        <DialogTitle sx={{ color: "#ffffff" }}>{t("rename")}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -946,7 +945,7 @@ export default function Folders() {
             {isRenaming ? (
               <CircularProgress size={20} sx={{ color: "#ffffff" }} />
             ) : (
-              "Save"
+              t("save")
             )}
           </Button>
         </DialogActions>
@@ -965,7 +964,7 @@ export default function Folders() {
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>Edit text</DialogTitle>
+        <DialogTitle sx={{ color: "#ffffff" }}>{t("editText")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -1044,7 +1043,7 @@ export default function Folders() {
                 !editUzRaw.trim() ||
                 !editEnRaw.trim()
               ) {
-                setEditError("Please fill all fields correctly");
+                setEditError(t("pleaseFillAllFieldsCorrectly"));
                 return;
               }
               try {
@@ -1055,7 +1054,7 @@ export default function Folders() {
                   enRaw: editEnRaw,
                 });
                 setEditTextOpen(false);
-                setToast("Text updated");
+                setToast(t("textUpdated"));
 
                 // Update title in list and clear caches
                 setTexts((prev) =>
@@ -1065,7 +1064,7 @@ export default function Folders() {
                 );
                 clearFolderCache();
               } catch (e) {
-                const msg = e instanceof Error ? e.message : "Failed";
+                const msg = e instanceof Error ? e.message : t("failed");
                 setEditError(msg);
               } finally {
                 setIsSavingEdit(false);
@@ -1084,7 +1083,7 @@ export default function Folders() {
             {isSavingEdit ? (
               <CircularProgress size={20} sx={{ color: "#ffffff" }} />
             ) : (
-              "Save"
+              t("save")
             )}
           </Button>
         </DialogActions>

@@ -243,15 +243,24 @@ export default function StudyText() {
             )
           : prev
       );
-      setToast("Saved");
+      setToast(t("saved"));
     } catch (e) {
-      setToast(e instanceof Error ? e.message : "Failed");
+      setToast(e instanceof Error ? e.message : t("failed"));
     }
   }
 
   return (
-    <Box sx={{ p: 2, maxWidth: 600, mx: "auto", pb: 20 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+    <Box
+      sx={{
+        p: 1,
+        maxWidth: 600,
+        mx: "auto",
+        pb: 18,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <IconButton
           onClick={() => navigate(-1)}
           aria-label="back"
@@ -259,43 +268,43 @@ export default function StudyText() {
             bgcolor: "rgba(255, 255, 255, 0.1)",
             borderRadius: 2,
             color: "#ffffff",
+            size: "small",
             "&:hover": {
               bgcolor: "rgba(255, 255, 255, 0.2)",
               color: "#64b5f6",
             },
           }}
         >
-          <ArrowBack />
+          <ArrowBack fontSize="small" />
         </IconButton>
         <Typography
-          variant="h6"
+          variant="subtitle1"
           sx={{ flexGrow: 1, color: "#ffffff", fontWeight: 600 }}
         >
           {text?.title ?? "..."}
         </Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="body2" sx={{ color: "#b0b0b0" }}>
-            {total ? `${idx + 1} / ${total}` : ""}
-          </Typography>
-        </Stack>
+        <Typography variant="caption" sx={{ color: "#b0b0b0" }}>
+          {total ? `${idx + 1}/${total}` : ""}
+        </Typography>
       </Stack>
 
       {isLoading ? (
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 4 }}>
           <CircularProgress size={20} sx={{ color: "#b0b0b0" }} />
-          <Typography sx={{ color: "#ffffff" }}>Loading…</Typography>
+          <Typography sx={{ color: "#ffffff" }}>{t("loading")}</Typography>
         </Stack>
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : text && currentSentence ? (
-        <>
-          <Box sx={{ mb: 2 }}>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* Uzbek sentence at top center */}
+          <Box sx={{ mb: 2, textAlign: "center", px: 1 }}>
             <Typography
               sx={{
                 mb: 1,
-                lineHeight: 1.35,
+                lineHeight: 1.3,
                 fontWeight: 700,
-                fontSize: "clamp(1.25rem, 6vw, 2rem)",
+                fontSize: "clamp(1rem, 4vw, 1.4rem)",
                 color: "#ffffff",
               }}
             >
@@ -303,163 +312,161 @@ export default function StudyText() {
             </Typography>
           </Box>
 
-          {/* Token row */}
-          <Stack
-            direction="row"
-            spacing={0.75}
-            sx={{ flexWrap: "wrap", rowGap: 0.75, mb: 2 }}
-          >
-            {(tokens ?? []).map((tk) => (
-              <Box
-                key={tk.id}
-                sx={{
-                  p: 0.75,
-                  borderRadius: 1.25,
-                  bgcolor: "rgba(255, 255, 255, 0.1)",
-                  minWidth: 56,
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  align="center"
-                  sx={{ fontWeight: 700, color: "#ffffff" }}
-                >
-                  {tk.uz}
-                </Typography>
-                <TextField
-                  size="small"
-                  value={tk.en}
-                  onChange={(e) =>
-                    setTokens((prev) =>
-                      prev
-                        ? prev.map((t) =>
-                            t.id === tk.id ? { ...t, en: e.target.value } : t
-                          )
-                        : prev
-                    )
-                  }
-                  onBlur={() =>
-                    void saveToken(tk.id, {
-                      en: tokens!.find((t) => t.id === tk.id)?.en || "",
-                    })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  inputProps={{ maxLength: 200 }}
-                  sx={{
-                    "& .MuiInputBase-input": {
-                      color: "#ffffff",
-                      fontSize: "0.875rem",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
-                      "&:hover fieldset": {
-                        borderColor: "rgba(255, 255, 255, 0.5)",
-                      },
-                      "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
-                    },
-                  }}
-                />
-              </Box>
-            ))}
-          </Stack>
-
           {/* Show correct sentence when needed */}
           {showCorrect && (
             <Box
               sx={{
                 mb: 2,
-                p: 1,
+                p: 1.5,
+                mx: 1,
                 borderRadius: 2,
                 bgcolor: "rgba(255, 255, 255, 0.1)",
+                textAlign: "center",
               }}
             >
-              <Typography variant="caption" sx={{ color: "#b0b0b0" }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "#b0b0b0", display: "block", mb: 0.5 }}
+              >
                 {t("correctAnswer")}
               </Typography>
-              <Typography variant="body1" sx={{ color: "#ffffff" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "#ffffff", fontWeight: 500 }}
+              >
                 {currentSentence.en}
               </Typography>
             </Box>
           )}
 
-          {/* Build-the-sentence mode */}
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
-            >
-              {t("buildTitle")}
-            </Typography>
-
-            <Stack
-              direction="row"
-              spacing={0.75}
+          {/* English sentence building area - center */}
+          <Box
+            sx={{
+              mb: 2,
+              px: 1,
+              flexGrow: 1,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* Build area for English sentence */}
+            <Box
               sx={{
-                flexWrap: "wrap",
-                rowGap: 0.75,
-                minHeight: 40,
-                p: 0.75,
+                minHeight: 50,
+                p: 1.5,
                 borderRadius: 2,
                 border: "1px dashed",
                 borderColor: "rgba(255, 255, 255, 0.3)",
-                mb: 1,
+                mb: 2,
+                bgcolor: "rgba(255, 255, 255, 0.05)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexGrow: 1,
               }}
             >
-              {buildAnswer.map((w, i) => (
-                <Button
-                  key={`a-${i}`}
-                  size="small"
-                  variant="contained"
-                  onClick={() => moveWord(w, false)}
-                  sx={{
-                    borderRadius: 2,
-                    px: 1.25,
-                    backgroundColor: "#1976d2",
-                    color: "#ffffff",
-                    "&:hover": {
-                      backgroundColor: "#1565c0",
-                    },
-                  }}
-                >
-                  {w}
-                </Button>
-              ))}
-            </Stack>
-            <Stack
-              direction="row"
-              spacing={0.75}
-              sx={{ flexWrap: "wrap", rowGap: 0.75, mb: 2 }}
-            >
-              {buildPool.map((w, i) => (
-                <Button
-                  key={`p-${i}`}
-                  size="small"
-                  variant="outlined"
-                  onClick={() => moveWord(w, true)}
-                  sx={{
-                    borderRadius: 2,
-                    px: 1.25,
-                    color: "#ffffff",
-                    borderColor: "rgba(255, 255, 255, 0.3)",
-                    "&:hover": {
-                      borderColor: "#64b5f6",
-                      color: "#64b5f6",
-                      backgroundColor: "rgba(100, 181, 246, 0.1)",
-                    },
-                  }}
-                >
-                  {w}
-                </Button>
-              ))}
-            </Stack>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  flexWrap: "wrap",
+                  rowGap: 0.5,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                {buildAnswer.length > 0 ? (
+                  buildAnswer.map((w, i) => (
+                    <Button
+                      key={`a-${i}`}
+                      size="small"
+                      variant="contained"
+                      onClick={() => moveWord(w, false)}
+                      sx={{
+                        borderRadius: 1.5,
+                        px: 1.2,
+                        py: 0.4,
+                        minHeight: 32,
+                        backgroundColor: "#1976d2",
+                        color: "#ffffff",
+                        fontSize: "0.8rem",
+                        fontWeight: 500,
+                        textTransform: "none",
+                        "&:hover": {
+                          backgroundColor: "#1565c0",
+                        },
+                        "&:active": {
+                          transform: "scale(0.95)",
+                        },
+                      }}
+                    >
+                      {w}
+                    </Button>
+                  ))
+                ) : (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "#b0b0b0",
+                      fontStyle: "italic",
+                      textAlign: "center",
+                      px: 2,
+                    }}
+                  >
+                    {t("tapWordsBelow")}
+                  </Typography>
+                )}
+              </Stack>
+            </Box>
+
+            {/* Word pool at bottom */}
+            <Box sx={{ mt: "auto", mb: 1 }}>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  flexWrap: "wrap",
+                  rowGap: 0.5,
+                  justifyContent: "center",
+                }}
+              >
+                {buildPool.map((w, i) => (
+                  <Button
+                    key={`p-${i}`}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => moveWord(w, true)}
+                    sx={{
+                      borderRadius: 1.5,
+                      px: 1.2,
+                      py: 0.4,
+                      minHeight: 32,
+                      color: "#ffffff",
+                      borderColor: "rgba(255, 255, 255, 0.4)",
+                      fontSize: "0.8rem",
+                      fontWeight: 500,
+                      textTransform: "none",
+                      "&:hover": {
+                        borderColor: "#64b5f6",
+                        color: "#64b5f6",
+                        backgroundColor: "rgba(100, 181, 246, 0.1)",
+                      },
+                      "&:active": {
+                        transform: "scale(0.95)",
+                      },
+                    }}
+                  >
+                    {w}
+                  </Button>
+                ))}
+              </Stack>
+            </Box>
           </Box>
-        </>
+        </Box>
       ) : (
-        <Typography sx={{ color: "#b0b0b0" }}>No sentences</Typography>
+        <Typography sx={{ color: "#b0b0b0", textAlign: "center", py: 4 }}>
+          {t("noSentences")}
+        </Typography>
       )}
 
       {/* Fixed Footer with Action Buttons */}
@@ -473,7 +480,7 @@ export default function StudyText() {
             bgcolor: "rgba(0, 0, 0, 0.95)",
             backdropFilter: "blur(10px)",
             borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            p: 2,
+            p: 1.5,
             zIndex: 1000,
             boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)",
           }}
@@ -483,7 +490,7 @@ export default function StudyText() {
             <Stack
               direction="row"
               spacing={1}
-              sx={{ mb: 2, justifyContent: "center" }}
+              sx={{ mb: 1.5, justifyContent: "center" }}
             >
               <Button
                 variant="contained"
@@ -494,8 +501,15 @@ export default function StudyText() {
                   "&:hover": {
                     backgroundColor: "#1565c0",
                   },
-                  minWidth: 80,
+                  minWidth: 70,
+                  minHeight: 36,
+                  fontSize: "0.8rem",
                   fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
                 }}
               >
                 {t("check")}
@@ -516,8 +530,15 @@ export default function StudyText() {
                     color: "#64b5f6",
                     backgroundColor: "rgba(100, 181, 246, 0.1)",
                   },
-                  minWidth: 80,
+                  minWidth: 70,
+                  minHeight: 36,
+                  fontSize: "0.8rem",
                   fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
                 }}
               >
                 {t("reset")}
@@ -531,8 +552,15 @@ export default function StudyText() {
                     color: "#64b5f6",
                     backgroundColor: "rgba(100, 181, 246, 0.1)",
                   },
-                  minWidth: 80,
+                  minWidth: 70,
+                  minHeight: 36,
+                  fontSize: "0.8rem",
                   fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
                 }}
               >
                 {t("reveal")}
@@ -561,8 +589,15 @@ export default function StudyText() {
                     color: "rgba(255, 255, 255, 0.3)",
                     borderColor: "rgba(255, 255, 255, 0.12)",
                   },
-                  minWidth: 100,
+                  minWidth: 80,
+                  minHeight: 40,
+                  fontSize: "0.85rem",
                   fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
                 }}
               >
                 {t("prev")}
@@ -581,8 +616,15 @@ export default function StudyText() {
                     backgroundColor: "rgba(255, 255, 255, 0.12)",
                     color: "rgba(255, 255, 255, 0.3)",
                   },
-                  minWidth: 100,
+                  minWidth: 80,
+                  minHeight: 40,
+                  fontSize: "0.85rem",
                   fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
                 }}
               >
                 {t("next")}
@@ -605,7 +647,7 @@ export default function StudyText() {
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>Edit text</DialogTitle>
+        <DialogTitle sx={{ color: "#ffffff" }}>{t("editText")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -684,7 +726,7 @@ export default function StudyText() {
                 !editUzRaw.trim() ||
                 !editEnRaw.trim()
               ) {
-                setEditError("Please fill all fields correctly");
+                setEditError(t("pleaseFillAllFieldsCorrectly"));
                 return;
               }
               try {
@@ -698,7 +740,7 @@ export default function StudyText() {
                 setText((prev) =>
                   prev ? { ...prev, title: titleTrim } : prev
                 );
-                setToast("Text updated");
+                setToast(t("textUpdated"));
                 setEditOpen(false);
               } catch (e) {
                 const msg = e instanceof Error ? e.message : "Failed";
@@ -720,7 +762,7 @@ export default function StudyText() {
             {isSavingEdit ? (
               <CircularProgress size={20} sx={{ color: "#ffffff" }} />
             ) : (
-              "Save"
+              t("save")
             )}
           </Button>
         </DialogActions>
