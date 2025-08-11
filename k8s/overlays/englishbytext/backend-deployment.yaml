@@ -12,6 +12,16 @@ spec:
       labels:
         app: englishbytext-backend
     spec:
+      initContainers:
+        - name: migrate
+          image: englishbytext-backend:migrator
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: app-englishbytext-env
+          env:
+            - name: POSTGRES_HOST
+              value: postgres-service-englishbytext
       containers:
         - name: backend
           image: englishbytext-backend:latest

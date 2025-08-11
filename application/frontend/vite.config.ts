@@ -15,6 +15,9 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
-    allowedHosts: ["wombat-accepted-whale.ngrok-free.app"],
+    allowedHosts: [
+      "wombat-accepted-whale.ngrok-free.app",
+      "linguatext.birgayur.uz",
+    ],
   },
 });

@@ -5,7 +5,7 @@ set -e  # Exit on error
 NAMESPACE=englishbytext
 
 echo "🧹 Resetting namespace..."
-kubectl delete namespace ${NAMESPACE} --ignore-not-found
+kubectl delete namespace ${NAMESPACE} --ignore-not-found || true
 kubectl create namespace ${NAMESPACE}
 
 echo "🧹 Resetting PersistentVolume..."
@@ -13,12 +13,15 @@ kubectl patch pv postgres-pv-englishbytext -p '{"spec":{"claimRef": null}}' || t
 
 echo "🚀 Building backend..."
 cd ./application/backend
-# Build production image
+# Build production and migrator images
 docker build -t englishbytext-backend:latest --target production .
+docker build -t englishbytext-backend:migrator --target migrator .
 # Load into k3s containerd if applicable
 if command -v k3s >/dev/null 2>&1; then
   docker save englishbytext-backend:latest -o englishbytext-backend.tar
+  docker save englishbytext-backend:migrator -o englishbytext-backend-migrator.tar
   k3s ctr images import englishbytext-backend.tar
+  k3s ctr images import englishbytext-backend-migrator.tar
 fi
 
 echo "🚀 Building frontend..."

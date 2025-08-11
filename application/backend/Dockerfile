@@ -16,6 +16,12 @@ COPY . .
 EXPOSE 4000
 CMD ["npm", "run", "dev"]
 
+# --- Migrator (runs sequelize-cli migrations/seeds) ---
+FROM deps AS migrator
+ENV NODE_ENV=development
+COPY . .
+CMD ["sh", "-lc", "npm run db:migrate && npm run db:seed"]
+
 # --- Build for production ---
 FROM deps AS build
 ENV NODE_ENV=production
