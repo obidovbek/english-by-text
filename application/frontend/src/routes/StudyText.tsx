@@ -259,52 +259,26 @@ export default function StudyText() {
         <IconButton
           onClick={() => navigate(-1)}
           aria-label="back"
-          sx={{ bgcolor: "action.hover", borderRadius: 2 }}
+          sx={{
+            bgcolor: "rgba(255, 255, 255, 0.1)",
+            borderRadius: 2,
+            color: "#ffffff",
+            "&:hover": {
+              bgcolor: "rgba(255, 255, 255, 0.2)",
+              color: "#64b5f6",
+            },
+          }}
         >
           <ArrowBack />
         </IconButton>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+        <Typography
+          variant="h6"
+          sx={{ flexGrow: 1, color: "#ffffff", fontWeight: 600 }}
+        >
           {text?.title ?? "..."}
         </Typography>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="outlined"
-            onClick={async () => {
-              try {
-                const full = await getJSON<any>(`/api/texts/${id}`);
-                setEditTitle(full.title || "");
-                setEditUzRaw(full.uzRaw || "");
-                setEditEnRaw(full.enRaw || "");
-                setEditError(null);
-                setEditOpen(true);
-              } catch (e) {
-                setToast(
-                  e instanceof Error ? e.message : "Failed to open editor"
-                );
-              }
-            }}
-          >
-            Edit
-          </Button>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoPlay}
-                onChange={(e) => setAutoPlay(e.target.checked)}
-              />
-            }
-            label="Auto"
-          />
-          <Select
-            size="small"
-            value={intervalMs}
-            onChange={(e) => setIntervalMs(Number(e.target.value))}
-          >
-            <MenuItem value={2000}>2s</MenuItem>
-            <MenuItem value={3000}>3s</MenuItem>
-            <MenuItem value={5000}>5s</MenuItem>
-          </Select>
-          <Typography variant="body2">
+          <Typography variant="body2" sx={{ color: "#b0b0b0" }}>
             {total ? `${idx + 1} / ${total}` : ""}
           </Typography>
         </Stack>
@@ -312,8 +286,8 @@ export default function StudyText() {
 
       {isLoading ? (
         <Stack direction="row" alignItems="center" spacing={1}>
-          <CircularProgress size={20} />
-          <Typography>Loading…</Typography>
+          <CircularProgress size={20} sx={{ color: "#b0b0b0" }} />
+          <Typography sx={{ color: "#ffffff" }}>Loading…</Typography>
         </Stack>
       ) : error ? (
         <Alert severity="error">{error}</Alert>
@@ -326,6 +300,7 @@ export default function StudyText() {
                 lineHeight: 1.35,
                 fontWeight: 700,
                 fontSize: "clamp(1.25rem, 6vw, 2rem)",
+                color: "#ffffff",
               }}
             >
               {currentSentence.uz}
@@ -344,14 +319,14 @@ export default function StudyText() {
                 sx={{
                   p: 0.75,
                   borderRadius: 1.25,
-                  bgcolor: "action.hover",
+                  bgcolor: "rgba(255, 255, 255, 0.1)",
                   minWidth: 56,
                 }}
               >
                 <Typography
                   variant="body2"
                   align="center"
-                  sx={{ fontWeight: 700 }}
+                  sx={{ fontWeight: 700, color: "#ffffff" }}
                 >
                   {tk.uz}
                 </Typography>
@@ -378,6 +353,19 @@ export default function StudyText() {
                     }
                   }}
                   inputProps={{ maxLength: 200 }}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      color: "#ffffff",
+                      fontSize: "0.875rem",
+                    },
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                      "&:hover fieldset": {
+                        borderColor: "rgba(255, 255, 255, 0.5)",
+                      },
+                      "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                    },
+                  }}
                 />
               </Box>
             ))}
@@ -385,19 +373,66 @@ export default function StudyText() {
 
           {/* Show correct sentence when needed */}
           {showCorrect && (
-            <Box sx={{ mb: 2, p: 1, borderRadius: 2, bgcolor: "action.hover" }}>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>
+            <Box
+              sx={{
+                mb: 2,
+                p: 1,
+                borderRadius: 2,
+                bgcolor: "rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <Typography variant="caption" sx={{ color: "#b0b0b0" }}>
                 {t("correctAnswer")}
               </Typography>
-              <Typography variant="body1">{currentSentence.en}</Typography>
+              <Typography variant="body1" sx={{ color: "#ffffff" }}>
+                {currentSentence.en}
+              </Typography>
             </Box>
           )}
 
           {/* Build-the-sentence mode */}
           <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
+            >
               {t("buildTitle")}
             </Typography>
+
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{
+                flexWrap: "wrap",
+                rowGap: 0.75,
+                minHeight: 40,
+                p: 0.75,
+                borderRadius: 2,
+                border: "1px dashed",
+                borderColor: "rgba(255, 255, 255, 0.3)",
+                mb: 1,
+              }}
+            >
+              {buildAnswer.map((w, i) => (
+                <Button
+                  key={`a-${i}`}
+                  size="small"
+                  variant="contained"
+                  onClick={() => moveWord(w, false)}
+                  sx={{
+                    borderRadius: 2,
+                    px: 1.25,
+                    backgroundColor: "#1976d2",
+                    color: "#ffffff",
+                    "&:hover": {
+                      backgroundColor: "#1565c0",
+                    },
+                  }}
+                >
+                  {w}
+                </Button>
+              ))}
+            </Stack>
             <Stack
               direction="row"
               spacing={0.75}
@@ -409,40 +444,34 @@ export default function StudyText() {
                   size="small"
                   variant="outlined"
                   onClick={() => moveWord(w, true)}
-                  sx={{ borderRadius: 2, px: 1.25 }}
-                >
-                  {w}
-                </Button>
-              ))}
-            </Stack>
-            <Stack
-              direction="row"
-              spacing={0.75}
-              sx={{
-                flexWrap: "wrap",
-                rowGap: 0.75,
-                minHeight: 40,
-                p: 0.75,
-                borderRadius: 2,
-                border: "1px dashed",
-                borderColor: "divider",
-                mb: 1,
-              }}
-            >
-              {buildAnswer.map((w, i) => (
-                <Button
-                  key={`a-${i}`}
-                  size="small"
-                  variant="contained"
-                  onClick={() => moveWord(w, false)}
-                  sx={{ borderRadius: 2, px: 1.25 }}
+                  sx={{
+                    borderRadius: 2,
+                    px: 1.25,
+                    color: "#ffffff",
+                    borderColor: "rgba(255, 255, 255, 0.3)",
+                    "&:hover": {
+                      borderColor: "#64b5f6",
+                      color: "#64b5f6",
+                      backgroundColor: "rgba(100, 181, 246, 0.1)",
+                    },
+                  }}
                 >
                   {w}
                 </Button>
               ))}
             </Stack>
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={checkBuilt}>
+              <Button
+                variant="contained"
+                onClick={checkBuilt}
+                sx={{
+                  backgroundColor: "#1976d2",
+                  color: "#ffffff",
+                  "&:hover": {
+                    backgroundColor: "#1565c0",
+                  },
+                }}
+              >
                 {t("check")}
               </Button>
               <Button
@@ -453,10 +482,29 @@ export default function StudyText() {
                     (currentSentence?.en || "").split(/\s+/).filter(Boolean)
                   );
                 }}
+                sx={{
+                  color: "#ffffff",
+                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    borderColor: "#64b5f6",
+                    color: "#64b5f6",
+                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                  },
+                }}
               >
                 {t("reset")}
               </Button>
-              <Button variant="text" onClick={revealBuilt}>
+              <Button
+                variant="text"
+                onClick={revealBuilt}
+                sx={{
+                  color: "#b0b0b0",
+                  "&:hover": {
+                    color: "#64b5f6",
+                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                  },
+                }}
+              >
                 {t("reveal")}
               </Button>
             </Stack>
@@ -467,6 +515,19 @@ export default function StudyText() {
               variant="outlined"
               disabled={!canPrev}
               onClick={() => setIdx((i) => i - 1)}
+              sx={{
+                color: "#ffffff",
+                borderColor: "rgba(255, 255, 255, 0.3)",
+                "&:hover": {
+                  borderColor: "#64b5f6",
+                  color: "#64b5f6",
+                  backgroundColor: "rgba(100, 181, 246, 0.1)",
+                },
+                "&.Mui-disabled": {
+                  color: "rgba(255, 255, 255, 0.3)",
+                  borderColor: "rgba(255, 255, 255, 0.12)",
+                },
+              }}
             >
               {t("prev")}
             </Button>
@@ -474,13 +535,24 @@ export default function StudyText() {
               variant="contained"
               disabled={!canNext}
               onClick={() => setIdx((i) => i + 1)}
+              sx={{
+                backgroundColor: "#1976d2",
+                color: "#ffffff",
+                "&:hover": {
+                  backgroundColor: "#1565c0",
+                },
+                "&.Mui-disabled": {
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  color: "rgba(255, 255, 255, 0.3)",
+                },
+              }}
             >
               {t("next")}
             </Button>
           </Stack>
         </>
       ) : (
-        <Typography>No sentences</Typography>
+        <Typography sx={{ color: "#b0b0b0" }}>No sentences</Typography>
       )}
 
       {/* Edit dialog */}
@@ -489,8 +561,14 @@ export default function StudyText() {
         onClose={() => setEditOpen(false)}
         fullWidth
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            bgcolor: "#424242",
+            color: "#ffffff",
+          },
+        }}
       >
-        <DialogTitle>Edit text</DialogTitle>
+        <DialogTitle sx={{ color: "#ffffff" }}>Edit text</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -499,6 +577,17 @@ export default function StudyText() {
               onChange={(e) => setEditTitle(e.target.value)}
               inputProps={{ maxLength: 200 }}
               fullWidth
+              sx={{
+                "& .MuiInputLabel-root": { color: "#b0b0b0" },
+                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
+                  },
+                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                },
+              }}
             />
             <TextField
               label={t("uzRawLabel")}
@@ -507,6 +596,17 @@ export default function StudyText() {
               fullWidth
               multiline
               minRows={6}
+              sx={{
+                "& .MuiInputLabel-root": { color: "#b0b0b0" },
+                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
+                  },
+                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                },
+              }}
             />
             <TextField
               label={t("enRawLabel")}
@@ -515,12 +615,27 @@ export default function StudyText() {
               fullWidth
               multiline
               minRows={6}
+              sx={{
+                "& .MuiInputLabel-root": { color: "#b0b0b0" },
+                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
+                  },
+                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                },
+              }}
             />
             {editError && <Alert severity="error">{editError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={isSavingEdit}>
+          <Button
+            onClick={() => setEditOpen(false)}
+            disabled={isSavingEdit}
+            sx={{ color: "#b0b0b0" }}
+          >
             {t("cancel")}
           </Button>
           <Button
@@ -557,8 +672,19 @@ export default function StudyText() {
             }}
             variant="contained"
             disabled={isSavingEdit}
+            sx={{
+              backgroundColor: "#1976d2",
+              color: "#ffffff",
+              "&:hover": {
+                backgroundColor: "#1565c0",
+              },
+            }}
           >
-            Save
+            {isSavingEdit ? (
+              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+            ) : (
+              "Save"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
