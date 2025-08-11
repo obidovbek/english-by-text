@@ -15,6 +15,10 @@ import {
   FormControlLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -56,6 +60,14 @@ export default function StudyText() {
   const [buildPool, setBuildPool] = useState<string[]>([]);
   const [buildAnswer, setBuildAnswer] = useState<string[]>([]);
 
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editUzRaw, setEditUzRaw] = useState("");
+  const [editEnRaw, setEditEnRaw] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   // Load text
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +77,8 @@ export default function StudyText() {
         setError(null);
         const data = await getJSON<TextDTO>(`/api/texts/${id}`);
         if (!cancelled) {
-          setText(data);
-          setIdx(data ? (data as any).lastIndex ?? 0 : 0);
+          setText(data as any);
+          setIdx((data as any) ? (data as any).lastIndex ?? 0 : 0);
         }
       } catch (e) {
         if (!cancelled)
@@ -255,6 +267,25 @@ export default function StudyText() {
           {text?.title ?? "..."}
         </Typography>
         <Stack direction="row" spacing={2} alignItems="center">
+          <Button
+            variant="outlined"
+            onClick={async () => {
+              try {
+                const full = await getJSON<any>(`/api/texts/${id}`);
+                setEditTitle(full.title || "");
+                setEditUzRaw(full.uzRaw || "");
+                setEditEnRaw(full.enRaw || "");
+                setEditError(null);
+                setEditOpen(true);
+              } catch (e) {
+                setToast(
+                  e instanceof Error ? e.message : "Failed to open editor"
+                );
+              }
+            }}
+          >
+            Edit
+          </Button>
           <FormControlLabel
             control={
               <Switch
@@ -451,6 +482,86 @@ export default function StudyText() {
       ) : (
         <Typography>No sentences</Typography>
       )}
+
+      {/* Edit dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit text</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t("titleLabel")}
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              inputProps={{ maxLength: 200 }}
+              fullWidth
+            />
+            <TextField
+              label={t("uzRawLabel")}
+              value={editUzRaw}
+              onChange={(e) => setEditUzRaw(e.target.value)}
+              fullWidth
+              multiline
+              minRows={6}
+            />
+            <TextField
+              label={t("enRawLabel")}
+              value={editEnRaw}
+              onChange={(e) => setEditEnRaw(e.target.value)}
+              fullWidth
+              multiline
+              minRows={6}
+            />
+            {editError && <Alert severity="error">{editError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={isSavingEdit}>
+            {t("cancel")}
+          </Button>
+          <Button
+            onClick={async () => {
+              const titleTrim = editTitle.trim();
+              if (
+                titleTrim.length < 1 ||
+                titleTrim.length > 200 ||
+                !editUzRaw.trim() ||
+                !editEnRaw.trim()
+              ) {
+                setEditError("Please fill all fields correctly");
+                return;
+              }
+              try {
+                setIsSavingEdit(true);
+                const updated = await patchJSON(`/api/texts/${id}`, {
+                  title: titleTrim,
+                  uzRaw: editUzRaw,
+                  enRaw: editEnRaw,
+                });
+                // Update local state title immediately
+                setText((prev) =>
+                  prev ? { ...prev, title: titleTrim } : prev
+                );
+                setToast("Text updated");
+                setEditOpen(false);
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Failed";
+                setEditError(msg);
+              } finally {
+                setIsSavingEdit(false);
+              }
+            }}
+            variant="contained"
+            disabled={isSavingEdit}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={Boolean(toast)}

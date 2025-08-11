@@ -122,6 +122,41 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
       }
     });
 
+    // PATCH -> rename folder
+    fastify.patch(`${base}/:id`, async (request, reply) => {
+      const userId = getUserId(request);
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+      const id = Number((request.params as any).id);
+      if (!Number.isFinite(id)) return reply.code(400).send({ error: 'Invalid id' });
+
+      const folder = await fastify.models.Folder.findOne({ where: { id, userId } });
+      if (!folder) return reply.code(404).send({ error: 'Not found' });
+
+      const body = request.body as Partial<{ name?: string }>;
+      const name = (body?.name ?? '').toString().trim();
+      if (!name) return reply.code(400).send({ error: 'Name is required' });
+      if (name.length < 1 || name.length > 100)
+        return reply.code(400).send({ error: 'Name must be 1-100 characters' });
+
+      try {
+        await (folder as any).update({ name });
+        return reply.send({
+          id: (folder as any).id,
+          name: (folder as any).name,
+          parentId: (folder as any).parentId,
+          createdAt: (folder as any).createdAt,
+          updatedAt: (folder as any).updatedAt,
+        });
+      } catch (err: any) {
+        const message = (err && err.message) || '';
+        if (message.includes('folders_user_parent_name_unique') || message.includes('unique')) {
+          return reply.code(409).send({ error: 'Name already exists' });
+        }
+        request.log.error({ err }, 'Failed to rename folder');
+        return reply.code(500).send({ error: 'Failed to rename folder' });
+      }
+    });
+
     // DELETE -> delete folder (cascade)
     fastify.delete(`${base}/:id`, async (request, reply) => {
       const userId = getUserId(request);

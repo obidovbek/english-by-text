@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getJSON, postJSON, deleteJSON } from "../api/client";
+import { getJSON, postJSON, deleteJSON, patchJSON } from "../api/client";
 import {
   Box,
   Typography,
@@ -71,6 +71,22 @@ export default function Folders() {
   const [userId, setUserId] = useState<string | null>(() =>
     localStorage.getItem("userId")
   );
+
+  // Rename folder dialog state
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<FolderDTO | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+
+  // Edit text dialog state
+  const [editTextOpen, setEditTextOpen] = useState(false);
+  const [editTextId, setEditTextId] = useState<number | string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editUzRaw, setEditUzRaw] = useState("");
+  const [editEnRaw, setEditEnRaw] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     const handler = () => setUserId(localStorage.getItem("userId"));
@@ -203,20 +219,45 @@ export default function Folders() {
                 key={tx.id}
                 disableGutters
                 secondaryAction={
-                  <Button
-                    color="error"
-                    onClick={async () => {
-                      if (!confirm("Delete this text?")) return;
-                      try {
-                        await deleteJSON(`/api/texts/${tx.id}`);
-                        setTexts((prev) => prev.filter((x) => x.id !== tx.id));
-                      } catch (e) {
-                        alert(e instanceof Error ? e.message : "Failed");
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const full = await apiGet<any>(`/api/texts/${tx.id}`);
+                          setEditTextId(tx.id);
+                          setEditTitle(full.title || "");
+                          setEditUzRaw(full.uzRaw || "");
+                          setEditEnRaw(full.enRaw || "");
+                          setEditError(null);
+                          setEditTextOpen(true);
+                        } catch (e) {
+                          alert(
+                            e instanceof Error
+                              ? e.message
+                              : "Failed to open editor"
+                          );
+                        }
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      color="error"
+                      onClick={async () => {
+                        if (!confirm("Delete this text?")) return;
+                        try {
+                          await deleteJSON(`/api/texts/${tx.id}`);
+                          setTexts((prev) =>
+                            prev.filter((x) => x.id !== tx.id)
+                          );
+                        } catch (e) {
+                          alert(e instanceof Error ? e.message : "Failed");
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </Stack>
                 }
               >
                 <ListItemButton
@@ -276,21 +317,33 @@ export default function Folders() {
               key={f.id}
               disableGutters
               secondaryAction={
-                <Button
-                  color="error"
-                  onClick={async () => {
-                    if (!confirm("Delete this folder and its contents?"))
-                      return;
-                    try {
-                      await deleteJSON(`/api/folders/${f.id}`);
-                      setFolders((prev) => prev.filter((x) => x.id !== f.id));
-                    } catch (e) {
-                      alert(e instanceof Error ? e.message : "Failed");
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    onClick={() => {
+                      setRenameTarget(f);
+                      setRenameName(f.name);
+                      setRenameError(null);
+                      setRenameOpen(true);
+                    }}
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={async () => {
+                      if (!confirm("Delete this folder and its contents?"))
+                        return;
+                      try {
+                        await deleteJSON(`/api/folders/${f.id}`);
+                        setFolders((prev) => prev.filter((x) => x.id !== f.id));
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : "Failed");
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Stack>
               }
             >
               <ListItemButton
@@ -443,6 +496,183 @@ export default function Folders() {
             disabled={isCreatingText || !userId}
           >
             {t("createText")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rename Folder Dialog */}
+      <Dialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Rename folder</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label={t("nameLabel")}
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            inputProps={{ maxLength: 100 }}
+            helperText={renameError ?? t("nameHelper")}
+            error={Boolean(renameError)}
+            margin="dense"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (async () => {
+                  const nm = renameName.trim();
+                  if (nm.length < 1 || nm.length > 100) {
+                    setRenameError(t("nameHelper"));
+                    return;
+                  }
+                  try {
+                    setIsRenaming(true);
+                    await patchJSON(
+                      `/api/folders/${renameTarget?.id}` as string,
+                      {
+                        name: nm,
+                      }
+                    );
+                    setRenameOpen(false);
+                    setToast("Folder renamed");
+                    await loadFolders();
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : "Failed";
+                    if (/already exists/i.test(msg)) {
+                      setRenameError(t("nameExists"));
+                    } else {
+                      setRenameError(msg);
+                    }
+                  } finally {
+                    setIsRenaming(false);
+                  }
+                })();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRenameOpen(false)} disabled={isRenaming}>
+            {t("cancel")}
+          </Button>
+          <Button
+            onClick={async () => {
+              const nm = renameName.trim();
+              if (nm.length < 1 || nm.length > 100) {
+                setRenameError(t("nameHelper"));
+                return;
+              }
+              try {
+                setIsRenaming(true);
+                await patchJSON(`/api/folders/${renameTarget?.id}` as string, {
+                  name: nm,
+                });
+                setRenameOpen(false);
+                setToast("Folder renamed");
+                await loadFolders();
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Failed";
+                if (/already exists/i.test(msg)) {
+                  setRenameError(t("nameExists"));
+                } else {
+                  setRenameError(msg);
+                }
+              } finally {
+                setIsRenaming(false);
+              }
+            }}
+            variant="contained"
+            disabled={isRenaming}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Text Dialog */}
+      <Dialog
+        open={editTextOpen}
+        onClose={() => setEditTextOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit text</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t("titleLabel")}
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              inputProps={{ maxLength: 200 }}
+              fullWidth
+            />
+            <TextField
+              label={t("uzRawLabel")}
+              value={editUzRaw}
+              onChange={(e) => setEditUzRaw(e.target.value)}
+              fullWidth
+              multiline
+              minRows={6}
+            />
+            <TextField
+              label={t("enRawLabel")}
+              value={editEnRaw}
+              onChange={(e) => setEditEnRaw(e.target.value)}
+              fullWidth
+              multiline
+              minRows={6}
+            />
+            {editError && <Alert severity="error">{editError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setEditTextOpen(false)}
+            disabled={isSavingEdit}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            onClick={async () => {
+              const titleTrim = editTitle.trim();
+              if (
+                titleTrim.length < 1 ||
+                titleTrim.length > 200 ||
+                !editUzRaw.trim() ||
+                !editEnRaw.trim()
+              ) {
+                setEditError("Please fill all fields correctly");
+                return;
+              }
+              try {
+                setIsSavingEdit(true);
+                await patchJSON(`/api/texts/${editTextId}` as string, {
+                  title: titleTrim,
+                  uzRaw: editUzRaw,
+                  enRaw: editEnRaw,
+                });
+                setEditTextOpen(false);
+                setToast("Text updated");
+                // Update title in list
+                setTexts((prev) =>
+                  prev.map((x) =>
+                    x.id === editTextId ? { ...x, title: titleTrim } : x
+                  )
+                );
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Failed";
+                setEditError(msg);
+              } finally {
+                setIsSavingEdit(false);
+              }
+            }}
+            variant="contained"
+            disabled={isSavingEdit}
+          >
+            Save
           </Button>
         </DialogActions>
       </Dialog>
