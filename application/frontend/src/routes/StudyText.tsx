@@ -46,7 +46,7 @@ export default function StudyText() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
-  const [tokens, setTokens] = useState<TokenDTO[] | null>(null);
+  const [, setTokens] = useState<TokenDTO[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
   const [intervalMs] = useState(3000);
@@ -226,28 +226,28 @@ export default function StudyText() {
     return () => window.removeEventListener("keydown", onKey);
   }, [total]);
 
-  async function saveToken(
-    tokenId: number | string,
-    fields: Partial<{ en: string; pos: string; note: string }>
-  ) {
-    if (!currentSentence) return;
-    try {
-      const updated = await patchJSON<
-        Partial<{ en: string; pos?: string; note?: string }>,
-        TokenDTO
-      >(`/api/sentences/${currentSentence.id}/tokens/${tokenId}`, fields);
-      setTokens((prev) =>
-        prev
-          ? prev.map((t) =>
-              t.id === tokenId ? { ...(t as any), ...updated } : t
-            )
-          : prev
-      );
-      setToast(t("saved"));
-    } catch (e) {
-      setToast(e instanceof Error ? e.message : t("failed"));
-    }
-  }
+  // async function saveToken(
+  //   tokenId: number | string,
+  //   fields: Partial<{ en: string; pos: string; note: string }>
+  // ) {
+  //   if (!currentSentence) return;
+  //   try {
+  //     const updated = await patchJSON<
+  //       Partial<{ en: string; pos?: string; note?: string }>,
+  //       TokenDTO
+  //     >(`/api/sentences/${currentSentence.id}/tokens/${tokenId}`, fields);
+  //     setTokens((prev) =>
+  //       prev
+  //         ? prev.map((t) =>
+  //             t.id === tokenId ? { ...(t as any), ...updated } : t
+  //           )
+  //         : prev
+  //     );
+  //     setToast(t("saved"));
+  //   } catch (e) {
+  //     setToast(e instanceof Error ? e.message : t("failed"));
+  //   }
+  // }
 
   return (
     <Box
