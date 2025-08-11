@@ -250,7 +250,7 @@ export default function StudyText() {
   }
 
   return (
-    <Box sx={{ p: 2, maxWidth: 600, mx: "auto", pb: 10 }}>
+    <Box sx={{ p: 2, maxWidth: 600, mx: "auto", pb: 20 }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         <IconButton
           onClick={() => navigate(-1)}
@@ -387,7 +387,7 @@ export default function StudyText() {
           )}
 
           {/* Build-the-sentence mode */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 4 }}>
             <Typography
               variant="subtitle1"
               sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
@@ -463,122 +463,134 @@ export default function StudyText() {
       )}
 
       {/* Fixed Footer with Action Buttons */}
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          bgcolor: "rgba(0, 0, 0, 0.9)",
-          backdropFilter: "blur(10px)",
-          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-          p: 2,
-          zIndex: 1000,
-        }}
-      >
-        <Box sx={{ maxWidth: 600, mx: "auto" }}>
-          {/* Action buttons row */}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ mb: 2, justifyContent: "center" }}
-          >
-            <Button
-              variant="contained"
-              onClick={checkBuilt}
-              sx={{
-                backgroundColor: "#1976d2",
-                color: "#ffffff",
-                "&:hover": {
-                  backgroundColor: "#1565c0",
-                },
-                minWidth: 80,
-              }}
+      {text && currentSentence && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: "rgba(0, 0, 0, 0.95)",
+            backdropFilter: "blur(10px)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+            p: 2,
+            zIndex: 1000,
+            boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          <Box sx={{ maxWidth: 600, mx: "auto" }}>
+            {/* Action buttons row */}
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ mb: 2, justifyContent: "center" }}
             >
-              {t("check")}
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                setBuildAnswer([]);
-                setBuildPool(
-                  (currentSentence?.en || "").split(/\s+/).filter(Boolean)
-                );
-              }}
-              sx={{
-                color: "#ffffff",
-                borderColor: "rgba(255, 255, 255, 0.3)",
-                "&:hover": {
-                  borderColor: "#64b5f6",
-                  color: "#64b5f6",
-                  backgroundColor: "rgba(100, 181, 246, 0.1)",
-                },
-                minWidth: 80,
-              }}
-            >
-              {t("reset")}
-            </Button>
-            <Button
-              variant="text"
-              onClick={revealBuilt}
-              sx={{
-                color: "#b0b0b0",
-                "&:hover": {
-                  color: "#64b5f6",
-                  backgroundColor: "rgba(100, 181, 246, 0.1)",
-                },
-                minWidth: 80,
-              }}
-            >
-              {t("reveal")}
-            </Button>
-          </Stack>
+              <Button
+                variant="contained"
+                onClick={checkBuilt}
+                sx={{
+                  backgroundColor: "#1976d2",
+                  color: "#ffffff",
+                  "&:hover": {
+                    backgroundColor: "#1565c0",
+                  },
+                  minWidth: 80,
+                  fontWeight: 600,
+                }}
+              >
+                {t("check")}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setBuildAnswer([]);
+                  setBuildPool(
+                    (currentSentence?.en || "").split(/\s+/).filter(Boolean)
+                  );
+                }}
+                sx={{
+                  color: "#ffffff",
+                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    borderColor: "#64b5f6",
+                    color: "#64b5f6",
+                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                  },
+                  minWidth: 80,
+                  fontWeight: 600,
+                }}
+              >
+                {t("reset")}
+              </Button>
+              <Button
+                variant="text"
+                onClick={revealBuilt}
+                sx={{
+                  color: "#b0b0b0",
+                  "&:hover": {
+                    color: "#64b5f6",
+                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                  },
+                  minWidth: 80,
+                  fontWeight: 600,
+                }}
+              >
+                {t("reveal")}
+              </Button>
+            </Stack>
 
-          {/* Navigation buttons row */}
-          <Stack direction="row" spacing={2} sx={{ justifyContent: "center" }}>
-            <Button
-              variant="outlined"
-              disabled={!canPrev}
-              onClick={() => setIdx((i) => i - 1)}
-              sx={{
-                color: "#ffffff",
-                borderColor: "rgba(255, 255, 255, 0.3)",
-                "&:hover": {
-                  borderColor: "#64b5f6",
-                  color: "#64b5f6",
-                  backgroundColor: "rgba(100, 181, 246, 0.1)",
-                },
-                "&.Mui-disabled": {
-                  color: "rgba(255, 255, 255, 0.3)",
-                  borderColor: "rgba(255, 255, 255, 0.12)",
-                },
-                minWidth: 100,
-              }}
+            {/* Navigation buttons row */}
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{ justifyContent: "center" }}
             >
-              {t("prev")}
-            </Button>
-            <Button
-              variant="contained"
-              disabled={!canNext}
-              onClick={() => setIdx((i) => i + 1)}
-              sx={{
-                backgroundColor: "#1976d2",
-                color: "#ffffff",
-                "&:hover": {
-                  backgroundColor: "#1565c0",
-                },
-                "&.Mui-disabled": {
-                  backgroundColor: "rgba(255, 255, 255, 0.12)",
-                  color: "rgba(255, 255, 255, 0.3)",
-                },
-                minWidth: 100,
-              }}
-            >
-              {t("next")}
-            </Button>
-          </Stack>
+              <Button
+                variant="outlined"
+                disabled={!canPrev}
+                onClick={() => setIdx((i) => i - 1)}
+                sx={{
+                  color: "#ffffff",
+                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    borderColor: "#64b5f6",
+                    color: "#64b5f6",
+                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                  },
+                  "&.Mui-disabled": {
+                    color: "rgba(255, 255, 255, 0.3)",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                  },
+                  minWidth: 100,
+                  fontWeight: 600,
+                }}
+              >
+                {t("prev")}
+              </Button>
+              <Button
+                variant="contained"
+                disabled={!canNext}
+                onClick={() => setIdx((i) => i + 1)}
+                sx={{
+                  backgroundColor: "#1976d2",
+                  color: "#ffffff",
+                  "&:hover": {
+                    backgroundColor: "#1565c0",
+                  },
+                  "&.Mui-disabled": {
+                    backgroundColor: "rgba(255, 255, 255, 0.12)",
+                    color: "rgba(255, 255, 255, 0.3)",
+                  },
+                  minWidth: 100,
+                  fontWeight: 600,
+                }}
+              >
+                {t("next")}
+              </Button>
+            </Stack>
+          </Box>
         </Box>
-      </Box>
+      )}
 
       {/* Edit dialog */}
       <Dialog
