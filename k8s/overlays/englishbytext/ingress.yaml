@@ -9,10 +9,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - englishbytext.fstu.uz
+        - linguatext.birgayur.uz
       secretName: englishbytext-birgayur-uz-tls
   rules:
-    - host: englishbytext.fstu.uz
+    - host: linguatext.birgayur.uz
       http:
         paths:
           - path: /
@@ -35,10 +35,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - englishbytext.fstu.uz
+        - linguatext.birgayur.uz
       secretName: englishbytext-birgayur-uz-tls
   rules:
-    - host: englishbytext.fstu.uz
+    - host: linguatext.birgayur.uz
       http:
         paths:
           - path: /api
