@@ -21,3 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-englishbytext-env
+          env:
+            - name: POSTGRES_HOST
+              value: postgres-service-englishbytext

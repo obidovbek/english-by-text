@@ -89,12 +89,21 @@ class TokenModel extends Model<InferAttributes<TokenModel>, InferCreationAttribu
 }
 
 const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not defined');
+  const databaseName = process.env.POSTGRES_DB;
+  const databaseUser = process.env.POSTGRES_USER;
+  const databasePassword = process.env.POSTGRES_PASSWORD;
+  const databaseHost = process.env.POSTGRES_HOST || 'postgres';
+  const databasePort = Number(process.env.POSTGRES_PORT || 5432);
+
+  if (!databaseName || !databaseUser || databasePassword === undefined) {
+    throw new Error(
+      'Database configuration invalid. Ensure POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD are set',
+    );
   }
 
-  const sequelize = new Sequelize(databaseUrl, {
+  const sequelize = new Sequelize(databaseName, databaseUser, databasePassword, {
+    host: databaseHost,
+    port: databasePort,
     dialect: 'postgres',
     logging: false,
   });
