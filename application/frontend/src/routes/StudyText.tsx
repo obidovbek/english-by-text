@@ -49,7 +49,7 @@ export default function StudyText() {
   const [tokens, setTokens] = useState<TokenDTO[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
-  const [intervalMs, setIntervalMs] = useState(3000);
+  const [intervalMs] = useState(3000);
   const timerRef = useRef<number | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const [showCorrect, setShowCorrect] = useState(false);
@@ -648,7 +648,7 @@ export default function StudyText() {
               }
               try {
                 setIsSavingEdit(true);
-                const updated = await patchJSON(`/api/texts/${id}`, {
+                await patchJSON(`/api/texts/${id}`, {
                   title: titleTrim,
                   uzRaw: editUzRaw,
                   enRaw: editEnRaw,
