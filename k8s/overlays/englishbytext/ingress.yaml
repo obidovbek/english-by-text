@@ -2,15 +2,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: englishbytext-frontend-ingress
+  namespace: englishbytext
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - linguatext.birgayur.uz
-      secretName: englishbytext-birgayur-uz-tls
   rules:
     - host: linguatext.birgayur.uz
       http:
@@ -22,25 +18,6 @@ spec:
                 name: englishbytext-frontend
                 port:
                   number: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: englishbytext-backend-ingress
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: englishbytext-strip-api@kubernetescrd
-spec:
-  ingressClassName: traefik
-  tls:
-    - hosts:
-        - linguatext.birgayur.uz
-      secretName: englishbytext-birgayur-uz-tls
-  rules:
-    - host: linguatext.birgayur.uz
-      http:
-        paths:
           - path: /api
             pathType: Prefix
             backend:
