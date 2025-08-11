@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: postgres-pv-englishbytext
+  name: postgres-pv-linguatext
 spec:
   capacity:
     storage: 1Gi
@@ -13,7 +13,7 @@ spec:
   storageClassName: local-path
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /opt/local-path-provisioner/englishbytext-postgres-data
+    path: /opt/local-path-provisioner/linguatext-postgres-data
 
 ---
 # ------------------------
@@ -22,14 +22,14 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc-englishbytext
+  name: postgres-pvc-linguatext
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
-  volumeName: postgres-pv-englishbytext
+  volumeName: postgres-pv-linguatext
   storageClassName: local-path
 
 ---
@@ -39,11 +39,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service-englishbytext
+  name: postgres-service-linguatext
 spec:
   type: ClusterIP
   selector:
-    app: postgres-englishbytext
+    app: postgres-linguatext
   ports:
     - port: 5432
       targetPort: 5432
@@ -55,23 +55,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-englishbytext
+  name: postgres-linguatext
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-englishbytext
+      app: postgres-linguatext
   template:
     metadata:
       labels:
-        app: postgres-englishbytext
+        app: postgres-linguatext
     spec:
       containers:
         - name: postgres
           image: postgres:14
           envFrom:
             - configMapRef:
-                name: app-englishbytext-env
+                name: app-linguatext-env
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -80,4 +80,4 @@ spec:
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:
-            claimName: postgres-pvc-englishbytext
+            claimName: postgres-pvc-linguatext

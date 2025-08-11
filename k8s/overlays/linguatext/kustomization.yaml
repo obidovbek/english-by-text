@@ -1,4 +1,4 @@
-namespace: englishbytext
+namespace: linguatext
 
 resources:
   - backend-deployment.yaml
@@ -10,7 +10,7 @@ resources:
   - middleware.yaml
 
 configMapGenerator:
-  - name: app-englishbytext-env
+  - name: app-linguatext-env
     envs:
       - .env
 

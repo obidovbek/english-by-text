@@ -1,36 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: englishbytext-backend
+  name: linguatext-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: englishbytext-backend
+      app: linguatext-backend
   template:
     metadata:
       labels:
-        app: englishbytext-backend
+        app: linguatext-backend
     spec:
       initContainers:
         - name: migrate
-          image: englishbytext-backend:migrator
+          image: linguatext-backend:migrator
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
-                name: app-englishbytext-env
+                name: app-linguatext-env
           env:
             - name: POSTGRES_HOST
-              value: postgres-service-englishbytext
+              value: postgres-service-linguatext
       containers:
         - name: backend
-          image: englishbytext-backend:latest
+          image: linguatext-backend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4000
           envFrom:
             - configMapRef:
-                name: app-englishbytext-env
+                name: app-linguatext-env
           env:
             - name: POSTGRES_HOST
-              value: postgres-service-englishbytext
+              value: postgres-service-linguatext

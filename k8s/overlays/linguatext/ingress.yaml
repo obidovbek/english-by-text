@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: englishbytext-frontend-ingress
-  namespace: englishbytext
+  name: linguatext-frontend-ingress
+  namespace: linguatext
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
@@ -15,13 +15,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: englishbytext-frontend
+                name: linguatext-frontend
                 port:
                   number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: englishbytext-backend
+                name: linguatext-backend
                 port:
                   number: 80

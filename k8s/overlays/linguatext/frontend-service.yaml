@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: englishbytext-frontend
+  name: linguatext-frontend
 spec:
   selector:
-    app: englishbytext-frontend
+    app: linguatext-frontend
   ports:
     - port: 80
       targetPort: 80

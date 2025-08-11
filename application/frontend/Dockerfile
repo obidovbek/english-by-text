@@ -21,9 +21,9 @@ RUN npm run build
 
 # Production web server
 FROM nginx:alpine AS production
-ARG INSTANCE_NAME=englishbytext
+ARG INSTANCE_NAME=linguatext
 COPY --from=build /app/dist /usr/share/nginx/html
-# Custom nginx config per instance name (defaults to englishbytext)
-COPY ./nginx/default-englishbytext.conf /etc/nginx/conf.d/default.conf
+# Custom nginx config per instance name (defaults to linguatext)
+COPY ./nginx/default-linguatext.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"] 

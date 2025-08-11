@@ -12,7 +12,7 @@ volumes:
 services:
   postgres:
     image: postgres:16
-    container_name: englishbytext_postgres
+    container_name: linguatext_postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,7 +34,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: development
-    container_name: englishbytext_backend
+    container_name: linguatext_backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: development
-    container_name: englishbytext_frontend
+    container_name: linguatext_frontend
     env_file:
       - .env
     environment:
@@ -82,7 +82,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: englishbytext_nginx
+    container_name: linguatext_nginx
     depends_on:
       - frontend
       - backend
@@ -93,7 +93,7 @@ services:
 
   ngrok:
     image: ngrok/ngrok:latest
-    container_name: englishbytext_ngrok
+    container_name: linguatext_ngrok
     depends_on:
       - frontend
     env_file:
