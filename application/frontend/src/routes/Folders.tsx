@@ -24,6 +24,7 @@ import {
   Skeleton,
   Menu,
   MenuItem,
+  useTheme,
 } from "@mui/material";
 import { ArrowBack, CreateNewFolder, MoreVert } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -64,6 +65,7 @@ function isCacheValid(entry: CacheEntry): boolean {
 }
 
 export default function Folders() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const parentIdParam = params.get("parentId");
@@ -306,10 +308,10 @@ export default function Folders() {
               size="small"
               onClick={(e) => handleMenuClick(e, f, "folder")}
               sx={{
-                color: "#ffffff",
+                color: "text.primary",
                 "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  color: "#64b5f6",
+                  backgroundColor: "action.hover",
+                  color: "primary.main",
                 },
               }}
             >
@@ -324,13 +326,13 @@ export default function Folders() {
             }}
             sx={{
               borderRadius: 1,
-              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.05)" },
+              "&:hover": { bgcolor: "action.hover" },
             }}
           >
             <ListItemText
               primary={f.name}
               primaryTypographyProps={{
-                sx: { color: "#ffffff", fontWeight: 500 },
+                sx: { color: "text.primary", fontWeight: 500 },
               }}
             />
           </ListItemButton>
@@ -350,10 +352,10 @@ export default function Folders() {
               size="small"
               onClick={(e) => handleMenuClick(e, tx, "text")}
               sx={{
-                color: "#ffffff",
+                color: "text.primary",
                 "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  color: "#64b5f6",
+                  backgroundColor: "action.hover",
+                  color: "primary.main",
                 },
               }}
             >
@@ -365,7 +367,7 @@ export default function Folders() {
             onClick={() => navigate(`/texts/${tx.id}`)}
             sx={{
               borderRadius: 1,
-              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.05)" },
+              "&:hover": { bgcolor: "action.hover" },
             }}
           >
             <ListItemText
@@ -376,10 +378,10 @@ export default function Folders() {
                   : undefined
               }
               primaryTypographyProps={{
-                sx: { color: "#ffffff", fontWeight: 500 },
+                sx: { color: "text.primary", fontWeight: 500 },
               }}
               secondaryTypographyProps={{
-                sx: { color: "#b0b0b0" },
+                sx: { color: "text.secondary" },
               }}
             />
           </ListItemButton>
@@ -389,7 +391,7 @@ export default function Folders() {
   );
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 2, bgcolor: "background.default", minHeight: "100vh" }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         {parentId && (
           <IconButton
@@ -399,12 +401,18 @@ export default function Folders() {
               setParams(params, { replace: true });
             }}
             sx={{
-              bgcolor: "rgba(255, 255, 255, 0.1)",
+              bgcolor:
+                theme.palette.mode === "dark"
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
               borderRadius: 2,
-              color: "#ffffff",
+              color: "text.primary",
               "&:hover": {
-                bgcolor: "rgba(255, 255, 255, 0.2)",
-                color: "#64b5f6",
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(0, 0, 0, 0.2)",
+                color: "primary.main",
               },
             }}
           >
@@ -413,7 +421,7 @@ export default function Folders() {
         )}
         <Typography
           variant="h5"
-          sx={{ flexGrow: 1, color: "#ffffff", fontWeight: 600 }}
+          sx={{ flexGrow: 1, color: "text.primary", fontWeight: 600 }}
         >
           {/* {t("yourFolders")} */}
         </Typography>
@@ -424,12 +432,15 @@ export default function Folders() {
             disabled={!userId}
             sx={{
               mr: 1,
-              color: "#ffffff",
-              borderColor: "rgba(255, 255, 255, 0.3)",
+              color: "text.primary",
+              borderColor:
+                theme.palette.mode === "dark"
+                  ? "rgba(255, 255, 255, 0.3)"
+                  : "rgba(0, 0, 0, 0.3)",
               "&:hover": {
-                borderColor: "#64b5f6",
-                color: "#64b5f6",
-                backgroundColor: "rgba(100, 181, 246, 0.1)",
+                borderColor: "primary.main",
+                color: "primary.main",
+                backgroundColor: "action.hover",
               },
             }}
           >
@@ -438,17 +449,17 @@ export default function Folders() {
         )}
         <Button
           variant="contained"
-          startIcon={<CreateNewFolder sx={{ color: "#ffffff" }} />}
+          startIcon={<CreateNewFolder sx={{ color: "primary.contrastText" }} />}
           onClick={() => setDialogOpen(true)}
           disabled={!userId}
           sx={{
-            backgroundColor: "#1976d2",
-            color: "#ffffff",
+            backgroundColor: "primary.main",
+            color: "primary.contrastText",
             "&:hover": {
-              backgroundColor: "#1565c0",
+              backgroundColor: "primary.dark",
             },
             "& .MuiButton-startIcon": {
-              color: "#ffffff",
+              color: "primary.contrastText",
             },
           }}
         ></Button>
@@ -470,10 +481,10 @@ export default function Folders() {
               }
             }}
             sx={{
-              color: "#ffffff",
+              color: "text.primary",
               textDecoration: "none",
               "&:hover": {
-                color: "#64b5f6",
+                color: "primary.main",
                 textDecoration: "underline",
               },
             }}
@@ -488,7 +499,7 @@ export default function Folders() {
         <Box sx={{ mb: 2 }}>
           <Typography
             variant="subtitle1"
-            sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
+            sx={{ mb: 1, color: "text.primary", fontWeight: 600 }}
           >
             {t("texts")}
           </Typography>
@@ -499,14 +510,19 @@ export default function Folders() {
                   key={i}
                   variant="rectangular"
                   height={48}
-                  sx={{ bgcolor: "rgba(255, 255, 255, 0.1)" }}
+                  sx={{
+                    bgcolor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                  }}
                 />
               ))}
             </Stack>
           ) : texts.length > 0 ? (
             <List>{memoizedTexts}</List>
           ) : (
-            <Typography variant="body2" sx={{ color: "#b0b0b0" }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
               {t("noTextsYet")}
             </Typography>
           )}
@@ -516,7 +532,7 @@ export default function Folders() {
       {/* Folders list */}
       <Typography
         variant="subtitle1"
-        sx={{ mb: 1, color: "#ffffff", fontWeight: 600 }}
+        sx={{ mb: 1, color: "text.primary", fontWeight: 600 }}
       >
         {t("folders")}
       </Typography>
@@ -527,7 +543,12 @@ export default function Folders() {
               key={i}
               variant="rectangular"
               height={56}
-              sx={{ bgcolor: "rgba(255, 255, 255, 0.1)" }}
+              sx={{
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+              }}
             />
           ))}
         </Stack>
@@ -540,7 +561,7 @@ export default function Folders() {
             <ListItem disableGutters>
               <ListItemText
                 primary={t("noFoldersYet")}
-                primaryTypographyProps={{ sx: { color: "#b0b0b0" } }}
+                primaryTypographyProps={{ sx: { color: "text.secondary" } }}
               />
             </ListItem>
           )}
@@ -562,12 +583,12 @@ export default function Folders() {
         }}
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
             "& .MuiMenuItem-root": {
-              color: "#ffffff",
+              color: "text.primary",
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                backgroundColor: "action.hover",
               },
             },
           },
@@ -594,9 +615,10 @@ export default function Folders() {
               handleMenuClose();
             }}
             sx={{
-              color: "#f44336",
+              color: "error.main",
               "&:hover": {
-                backgroundColor: "rgba(244, 67, 54, 0.1)",
+                backgroundColor: "error.light",
+                color: "error.contrastText",
               },
             }}
           >
@@ -631,9 +653,10 @@ export default function Folders() {
               handleMenuClose();
             }}
             sx={{
-              color: "#f44336",
+              color: "error.main",
               "&:hover": {
-                backgroundColor: "rgba(244, 67, 54, 0.1)",
+                backgroundColor: "error.light",
+                color: "error.contrastText",
               },
             }}
           >
@@ -650,14 +673,16 @@ export default function Folders() {
         maxWidth="xs"
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>{t("newFolder")}</DialogTitle>
+        <DialogTitle sx={{ color: "text.primary" }}>
+          {t("newFolder")}
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="caption" sx={{ color: "#b0b0b0" }}>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {t("createIn", { place: parentId ? t("yourFolders") : t("root") })}
           </Typography>
           <TextField
@@ -678,14 +703,14 @@ export default function Folders() {
             error={Boolean(createError)}
             margin="dense"
             sx={{
-              "& .MuiInputLabel-root": { color: "#b0b0b0" },
-              "& .MuiInputBase-input": { color: "#ffffff" },
+              "& .MuiInputLabel-root": { color: "text.secondary" },
+              "& .MuiInputBase-input": { color: "text.primary" },
               "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
-                "&:hover fieldset": { borderColor: "rgba(255, 255, 255, 0.5)" },
-                "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                "& fieldset": { borderColor: "divider" },
+                "&:hover fieldset": { borderColor: "text.secondary" },
+                "&.Mui-focused fieldset": { borderColor: "primary.main" },
               },
-              "& .MuiFormHelperText-root": { color: "#b0b0b0" },
+              "& .MuiFormHelperText-root": { color: "text.secondary" },
             }}
           />
         </DialogContent>
@@ -693,7 +718,7 @@ export default function Folders() {
           <Button
             onClick={() => setDialogOpen(false)}
             disabled={isCreating}
-            sx={{ color: "#b0b0b0" }}
+            sx={{ color: "text.secondary" }}
           >
             {t("cancel")}
           </Button>
@@ -702,15 +727,18 @@ export default function Folders() {
             variant="contained"
             disabled={isCreating || !userId}
             sx={{
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               "&:hover": {
-                backgroundColor: "#1565c0",
+                backgroundColor: "primary.dark",
               },
             }}
           >
             {isCreating ? (
-              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+              <CircularProgress
+                size={20}
+                sx={{ color: "primary.contrastText" }}
+              />
             ) : (
               t("create")
             )}
@@ -726,12 +754,12 @@ export default function Folders() {
         maxWidth="sm"
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>{t("addText")}</DialogTitle>
+        <DialogTitle sx={{ color: "text.primary" }}>{t("addText")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -741,14 +769,14 @@ export default function Folders() {
               inputProps={{ maxLength: 200 }}
               fullWidth
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -760,14 +788,14 @@ export default function Folders() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -779,14 +807,14 @@ export default function Folders() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -797,7 +825,7 @@ export default function Folders() {
           <Button
             onClick={() => setTextDialogOpen(false)}
             disabled={isCreatingText}
-            sx={{ color: "#b0b0b0" }}
+            sx={{ color: "text.secondary" }}
           >
             {t("cancel")}
           </Button>
@@ -843,15 +871,18 @@ export default function Folders() {
             variant="contained"
             disabled={isCreatingText || !userId}
             sx={{
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               "&:hover": {
-                backgroundColor: "#1565c0",
+                backgroundColor: "primary.dark",
               },
             }}
           >
             {isCreatingText ? (
-              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+              <CircularProgress
+                size={20}
+                sx={{ color: "primary.contrastText" }}
+              />
             ) : (
               t("createText")
             )}
@@ -867,12 +898,12 @@ export default function Folders() {
         maxWidth="xs"
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>{t("rename")}</DialogTitle>
+        <DialogTitle sx={{ color: "text.primary" }}>{t("rename")}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -901,14 +932,14 @@ export default function Folders() {
               }
             }}
             sx={{
-              "& .MuiInputLabel-root": { color: "#b0b0b0" },
-              "& .MuiInputBase-input": { color: "#ffffff" },
+              "& .MuiInputLabel-root": { color: "text.secondary" },
+              "& .MuiInputBase-input": { color: "text.primary" },
               "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
-                "&:hover fieldset": { borderColor: "rgba(255, 255, 255, 0.5)" },
-                "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                "& fieldset": { borderColor: "divider" },
+                "&:hover fieldset": { borderColor: "text.secondary" },
+                "&.Mui-focused fieldset": { borderColor: "primary.main" },
               },
-              "& .MuiFormHelperText-root": { color: "#b0b0b0" },
+              "& .MuiFormHelperText-root": { color: "text.secondary" },
             }}
           />
         </DialogContent>
@@ -916,7 +947,7 @@ export default function Folders() {
           <Button
             onClick={() => setRenameOpen(false)}
             disabled={isRenaming}
-            sx={{ color: "#b0b0b0" }}
+            sx={{ color: "text.secondary" }}
           >
             {t("cancel")}
           </Button>
@@ -935,15 +966,18 @@ export default function Folders() {
             variant="contained"
             disabled={isRenaming}
             sx={{
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               "&:hover": {
-                backgroundColor: "#1565c0",
+                backgroundColor: "primary.dark",
               },
             }}
           >
             {isRenaming ? (
-              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+              <CircularProgress
+                size={20}
+                sx={{ color: "primary.contrastText" }}
+              />
             ) : (
               t("save")
             )}
@@ -959,12 +993,14 @@ export default function Folders() {
         maxWidth="sm"
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>{t("editText")}</DialogTitle>
+        <DialogTitle sx={{ color: "text.primary" }}>
+          {t("editText")}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -974,14 +1010,14 @@ export default function Folders() {
               inputProps={{ maxLength: 200 }}
               fullWidth
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -993,14 +1029,14 @@ export default function Folders() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -1012,14 +1048,14 @@ export default function Folders() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -1030,7 +1066,7 @@ export default function Folders() {
           <Button
             onClick={() => setEditTextOpen(false)}
             disabled={isSavingEdit}
-            sx={{ color: "#b0b0b0" }}
+            sx={{ color: "text.secondary" }}
           >
             {t("cancel")}
           </Button>
@@ -1073,15 +1109,18 @@ export default function Folders() {
             variant="contained"
             disabled={isSavingEdit}
             sx={{
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               "&:hover": {
-                backgroundColor: "#1565c0",
+                backgroundColor: "primary.dark",
               },
             }}
           >
             {isSavingEdit ? (
-              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+              <CircularProgress
+                size={20}
+                sx={{ color: "primary.contrastText" }}
+              />
             ) : (
               t("save")
             )}

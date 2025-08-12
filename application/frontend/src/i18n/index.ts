@@ -1,7 +1,7 @@
 export type Messages = Record<string, string>;
 
 const uz: Messages = {
-  appTitle: "Uz→En O‘rganish",
+  appTitle: "LinguaText",
   folders: "Jildlar",
   yourFolders: "Jildlaringiz",
   newFolder: "Yangi jild",
@@ -21,7 +21,7 @@ const uz: Messages = {
   loginWithTelegram: "Telegram orqali kirish",
   loggingIn: "Kirish…",
   loggedInAs: "Kirish holati:",
-  helloTitle: "Assalomu alaykum, O‘zbekcha–Inglizcha o‘rganish ilovasi",
+  helloTitle: "Assalomu alaykum, Tillar o‘rganish ilovasi",
   environmentTWA: "Muhit: Telegram WebApp ✅",
   andHelloName: "— Salom, {name}!",
   errorLoadFolders: "Jildlarni yuklab bo‘lmadi",
@@ -68,7 +68,7 @@ const uz: Messages = {
 };
 
 const en: Messages = {
-  appTitle: "Uz→En Learning",
+  appTitle: "LinguaText",
   folders: "Folders",
   yourFolders: "Your folders",
   newFolder: "New Folder",
@@ -88,7 +88,7 @@ const en: Messages = {
   loginWithTelegram: "Login with Telegram",
   loggingIn: "Logging in…",
   loggedInAs: "Logged in as:",
-  helloTitle: "Hello, Uzbek-English Learning App",
+  helloTitle: "Hello, Languages Learning App",
   environmentTWA: "Environment: Telegram WebApp ✅",
   andHelloName: "— Hello, {name}!",
   errorLoadFolders: "Failed to load folders",
@@ -134,7 +134,7 @@ const en: Messages = {
 };
 
 const ru: Messages = {
-  appTitle: "Уз→Англ изучение",
+  appTitle: "LinguaText",
   folders: "Папки",
   yourFolders: "Ваши папки",
   newFolder: "Новая папка",
@@ -154,7 +154,7 @@ const ru: Messages = {
   loginWithTelegram: "Войти через Telegram",
   loggingIn: "Входим…",
   loggedInAs: "Вошли как:",
-  helloTitle: "Здравствуйте, приложение для изучения узбекско-английского",
+  helloTitle: "Здравствуйте, приложение для изучения языков",
   environmentTWA: "Среда: Telegram WebApp ✅",
   andHelloName: "— Привет, {name}!",
   errorLoadFolders: "Не удалось загрузить папки",
@@ -198,7 +198,7 @@ const ru: Messages = {
 };
 
 const ko: Messages = {
-  appTitle: "우즈베크어→영어 학습",
+  appTitle: "LinguaText",
   folders: "폴더",
   yourFolders: "내 폴더",
   newFolder: "새 폴더",
@@ -218,7 +218,7 @@ const ko: Messages = {
   loginWithTelegram: "Telegram으로 로그인",
   loggingIn: "로그인 중…",
   loggedInAs: "로그인됨:",
-  helloTitle: "안녕하세요, 우즈베크어-영어 학습 앱입니다",
+  helloTitle: "안녕하세요, 언어 학습 앱입니다",
   environmentTWA: "환경: Telegram WebApp ✅",
   andHelloName: "— 안녕하세요, {name}님!",
   errorLoadFolders: "폴더를 불러오지 못했습니다",
@@ -262,7 +262,7 @@ const ko: Messages = {
 };
 
 const tr: Messages = {
-  appTitle: "Uz→En Öğrenme",
+  appTitle: "LinguaText",
   folders: "Klasörler",
   yourFolders: "Klasörlerin",
   newFolder: "Yeni Klasör",
@@ -282,7 +282,7 @@ const tr: Messages = {
   loginWithTelegram: "Telegram ile giriş yap",
   loggingIn: "Giriş yapılıyor…",
   loggedInAs: "Giriş yapan:",
-  helloTitle: "Merhaba, Özbekçe-İngilizce Öğrenme Uygulaması",
+  helloTitle: "Merhaba, Diller Öğrenme Uygulaması",
   environmentTWA: "Ortam: Telegram WebApp ✅",
   andHelloName: "— Merhaba, {name}!",
   errorLoadFolders: "Klasörler yüklenemedi",

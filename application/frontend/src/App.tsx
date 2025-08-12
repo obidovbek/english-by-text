@@ -45,6 +45,7 @@ function App() {
     if (!isTWA) return;
 
     const wa = window.Telegram!.WebApp;
+    console.log("wa", wa);
     wa.ready();
     wa.expand();
 

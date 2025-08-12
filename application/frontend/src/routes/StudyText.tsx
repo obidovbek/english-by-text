@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useTheme,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -40,13 +41,14 @@ interface TextDTO {
 }
 
 export default function StudyText() {
+  const theme = useTheme();
   const { id } = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState<TextDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [idx, setIdx] = useState(0);
-  const [, setTokens] = useState<TokenDTO[] | null>(null);
+  const [tokens, setTokens] = useState<TokenDTO[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
   const [intervalMs] = useState(3000);
@@ -63,6 +65,9 @@ export default function StudyText() {
   const [editEnRaw, setEditEnRaw] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Toggle for tokens editor
+  const [showTokensEditor, setShowTokensEditor] = useState(false);
 
   // Load text
   useEffect(() => {
@@ -128,7 +133,9 @@ export default function StudyText() {
     if (!text) return;
     if (progressTimerRef.current) window.clearTimeout(progressTimerRef.current);
     progressTimerRef.current = window.setTimeout(() => {
-      void patchJSON(`/api/texts/${text.id}/progress`, { index: idx });
+      patchJSON(`/api/texts/${text.id}/progress`, { index: idx }).catch(
+        () => {}
+      );
     }, 300);
     return () => {
       if (progressTimerRef.current)
@@ -226,28 +233,28 @@ export default function StudyText() {
     return () => window.removeEventListener("keydown", onKey);
   }, [total]);
 
-  // async function saveToken(
-  //   tokenId: number | string,
-  //   fields: Partial<{ en: string; pos: string; note: string }>
-  // ) {
-  //   if (!currentSentence) return;
-  //   try {
-  //     const updated = await patchJSON<
-  //       Partial<{ en: string; pos?: string; note?: string }>,
-  //       TokenDTO
-  //     >(`/api/sentences/${currentSentence.id}/tokens/${tokenId}`, fields);
-  //     setTokens((prev) =>
-  //       prev
-  //         ? prev.map((t) =>
-  //             t.id === tokenId ? { ...(t as any), ...updated } : t
-  //           )
-  //         : prev
-  //     );
-  //     setToast(t("saved"));
-  //   } catch (e) {
-  //     setToast(e instanceof Error ? e.message : t("failed"));
-  //   }
-  // }
+  async function saveToken(
+    tokenId: number | string,
+    fields: Partial<{ en: string; pos: string; note: string }>
+  ) {
+    if (!currentSentence) return;
+    try {
+      const updated = await patchJSON<
+        Partial<{ en: string; pos?: string; note?: string }>,
+        TokenDTO
+      >(`/api/sentences/${currentSentence.id}/tokens/${tokenId}`, fields);
+      setTokens((prev) =>
+        prev
+          ? prev.map((t) =>
+              t.id === tokenId ? { ...(t as any), ...updated } : t
+            )
+          : prev
+      );
+      setToast(t("saved"));
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : t("failed"));
+    }
+  }
 
   return (
     <Box
@@ -258,6 +265,8 @@ export default function StudyText() {
         pb: 18,
         display: "flex",
         flexDirection: "column",
+        bgcolor: "background.default",
+        color: "text.primary",
       }}
     >
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
@@ -265,13 +274,18 @@ export default function StudyText() {
           onClick={() => navigate(-1)}
           aria-label="back"
           sx={{
-            bgcolor: "rgba(255, 255, 255, 0.1)",
+            bgcolor:
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
             borderRadius: 2,
-            color: "#ffffff",
-            size: "small",
+            color: "text.primary",
             "&:hover": {
-              bgcolor: "rgba(255, 255, 255, 0.2)",
-              color: "#64b5f6",
+              bgcolor:
+                theme.palette.mode === "dark"
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(0, 0, 0, 0.2)",
+              color: "primary.main",
             },
           }}
         >
@@ -279,19 +293,19 @@ export default function StudyText() {
         </IconButton>
         <Typography
           variant="subtitle1"
-          sx={{ flexGrow: 1, color: "#ffffff", fontWeight: 600 }}
+          sx={{ flexGrow: 1, color: "text.primary", fontWeight: 600 }}
         >
           {text?.title ?? "..."}
         </Typography>
-        <Typography variant="caption" sx={{ color: "#b0b0b0" }}>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
           {total ? `${idx + 1}/${total}` : ""}
         </Typography>
       </Stack>
 
       {isLoading ? (
         <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 4 }}>
-          <CircularProgress size={20} sx={{ color: "#b0b0b0" }} />
-          <Typography sx={{ color: "#ffffff" }}>{t("loading")}</Typography>
+          <CircularProgress size={20} sx={{ color: "text.secondary" }} />
+          <Typography sx={{ color: "text.primary" }}>{t("loading")}</Typography>
         </Stack>
       ) : error ? (
         <Alert severity="error">{error}</Alert>
@@ -305,7 +319,7 @@ export default function StudyText() {
                 lineHeight: 1.3,
                 fontWeight: 700,
                 fontSize: "clamp(1rem, 4vw, 1.4rem)",
-                color: "#ffffff",
+                color: "text.primary",
               }}
             >
               {currentSentence.uz}
@@ -320,19 +334,22 @@ export default function StudyText() {
                 p: 1.5,
                 mx: 1,
                 borderRadius: 2,
-                bgcolor: "rgba(255, 255, 255, 0.1)",
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.05)",
                 textAlign: "center",
               }}
             >
               <Typography
                 variant="caption"
-                sx={{ color: "#b0b0b0", display: "block", mb: 0.5 }}
+                sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
               >
                 {t("correctAnswer")}
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: "#ffffff", fontWeight: 500 }}
+                sx={{ color: "text.primary", fontWeight: 500 }}
               >
                 {currentSentence.en}
               </Typography>
@@ -356,9 +373,15 @@ export default function StudyText() {
                 p: 1.5,
                 borderRadius: 2,
                 border: "1px dashed",
-                borderColor: "rgba(255, 255, 255, 0.3)",
+                borderColor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.3)"
+                    : "rgba(0, 0, 0, 0.3)",
                 mb: 2,
-                bgcolor: "rgba(255, 255, 255, 0.05)",
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -387,13 +410,13 @@ export default function StudyText() {
                         px: 1.2,
                         py: 0.4,
                         minHeight: 32,
-                        backgroundColor: "#1976d2",
-                        color: "#ffffff",
+                        backgroundColor: "primary.main",
+                        color: "primary.contrastText",
                         fontSize: "0.8rem",
                         fontWeight: 500,
                         textTransform: "none",
                         "&:hover": {
-                          backgroundColor: "#1565c0",
+                          backgroundColor: "primary.dark",
                         },
                         "&:active": {
                           transform: "scale(0.95)",
@@ -407,7 +430,7 @@ export default function StudyText() {
                   <Typography
                     variant="caption"
                     sx={{
-                      color: "#b0b0b0",
+                      color: "text.secondary",
                       fontStyle: "italic",
                       textAlign: "center",
                       px: 2,
@@ -441,15 +464,18 @@ export default function StudyText() {
                       px: 1.2,
                       py: 0.4,
                       minHeight: 32,
-                      color: "#ffffff",
-                      borderColor: "rgba(255, 255, 255, 0.4)",
+                      color: "text.primary",
+                      borderColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(255, 255, 255, 0.4)"
+                          : "rgba(0, 0, 0, 0.4)",
                       fontSize: "0.8rem",
                       fontWeight: 500,
                       textTransform: "none",
                       "&:hover": {
-                        borderColor: "#64b5f6",
-                        color: "#64b5f6",
-                        backgroundColor: "rgba(100, 181, 246, 0.1)",
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                        backgroundColor: "action.hover",
                       },
                       "&:active": {
                         transform: "scale(0.95)",
@@ -462,9 +488,102 @@ export default function StudyText() {
               </Stack>
             </Box>
           </Box>
+          {/* Tokens editor (optional) */}
+          {showTokensEditor && (
+            <Box
+              sx={{
+                mb: 2,
+                px: 1,
+                py: 1.5,
+                borderRadius: 2,
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.06)"
+                    : "rgba(0, 0, 0, 0.04)",
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ color: "text.secondary", display: "block", mb: 1 }}
+              >
+                {t("edit")}
+              </Typography>
+              {tokens === null ? (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <CircularProgress
+                    size={16}
+                    sx={{ color: "text.secondary" }}
+                  />
+                  <Typography sx={{ color: "text.primary" }}>
+                    {t("loading")}
+                  </Typography>
+                </Stack>
+              ) : tokens.length === 0 ? (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("noSentences")}
+                </Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {tokens.map((tok) => (
+                    <Stack
+                      key={String(tok.id)}
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "text.primary", minWidth: 80 }}>
+                        {tok.uz}
+                      </Typography>
+                      <TextField
+                        size="small"
+                        value={tok.en ?? ""}
+                        onChange={(e) =>
+                          setTokens((prev) =>
+                            prev
+                              ? prev.map((t) =>
+                                  t.id === tok.id
+                                    ? { ...(t as any), en: e.target.value }
+                                    : t
+                                )
+                              : prev
+                          )
+                        }
+                        onBlur={(e) =>
+                          saveToken(tok.id, { en: e.target.value })
+                        }
+                        sx={{
+                          flex: 1,
+                          "& .MuiInputBase-input": { color: "text.primary" },
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": {
+                              borderColor:
+                                theme.palette.mode === "dark"
+                                  ? "rgba(255, 255, 255, 0.3)"
+                                  : "rgba(0, 0, 0, 0.3)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor:
+                                theme.palette.mode === "dark"
+                                  ? "rgba(255, 255, 255, 0.5)"
+                                  : "rgba(0, 0, 0, 0.5)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "primary.main",
+                            },
+                          },
+                        }}
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
         </Box>
       ) : (
-        <Typography sx={{ color: "#b0b0b0", textAlign: "center", py: 4 }}>
+        <Typography
+          sx={{ color: "text.secondary", textAlign: "center", py: 4 }}
+        >
           {t("noSentences")}
         </Typography>
       )}
@@ -477,12 +596,22 @@ export default function StudyText() {
             bottom: 0,
             left: 0,
             right: 0,
-            bgcolor: "rgba(0, 0, 0, 0.95)",
+            bgcolor:
+              theme.palette.mode === "dark"
+                ? "rgba(0, 0, 0, 0.95)"
+                : "rgba(255, 255, 255, 0.95)",
             backdropFilter: "blur(10px)",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+            borderTop: `1px solid ${
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)"
+            }`,
             p: 1.5,
             zIndex: 1000,
-            boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)",
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "0 -4px 20px rgba(0, 0, 0, 0.3)"
+                : "0 -4px 20px rgba(0, 0, 0, 0.1)",
           }}
         >
           <Box sx={{ maxWidth: 600, mx: "auto" }}>
@@ -496,10 +625,10 @@ export default function StudyText() {
                 variant="contained"
                 onClick={checkBuilt}
                 sx={{
-                  backgroundColor: "#1976d2",
-                  color: "#ffffff",
+                  backgroundColor: "primary.main",
+                  color: "primary.contrastText",
                   "&:hover": {
-                    backgroundColor: "#1565c0",
+                    backgroundColor: "primary.dark",
                   },
                   minWidth: 70,
                   minHeight: 36,
@@ -523,12 +652,15 @@ export default function StudyText() {
                   );
                 }}
                 sx={{
-                  color: "#ffffff",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  color: "text.primary",
+                  borderColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.3)"
+                      : "rgba(0, 0, 0, 0.3)",
                   "&:hover": {
-                    borderColor: "#64b5f6",
-                    color: "#64b5f6",
-                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                    borderColor: "primary.main",
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
                   },
                   minWidth: 70,
                   minHeight: 36,
@@ -547,10 +679,10 @@ export default function StudyText() {
                 variant="text"
                 onClick={revealBuilt}
                 sx={{
-                  color: "#b0b0b0",
+                  color: "text.secondary",
                   "&:hover": {
-                    color: "#64b5f6",
-                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
                   },
                   minWidth: 70,
                   minHeight: 36,
@@ -565,6 +697,28 @@ export default function StudyText() {
               >
                 {t("reveal")}
               </Button>
+              <Button
+                variant="text"
+                onClick={() => setShowTokensEditor((v) => !v)}
+                sx={{
+                  color: showTokensEditor ? "primary.main" : "text.secondary",
+                  "&:hover": {
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
+                  },
+                  minWidth: 70,
+                  minHeight: 36,
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
+                }}
+              >
+                {t("edit")}
+              </Button>
             </Stack>
 
             {/* Navigation buttons row */}
@@ -578,16 +732,22 @@ export default function StudyText() {
                 disabled={!canPrev}
                 onClick={() => setIdx((i) => i - 1)}
                 sx={{
-                  color: "#ffffff",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  color: "text.primary",
+                  borderColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.3)"
+                      : "rgba(0, 0, 0, 0.3)",
                   "&:hover": {
-                    borderColor: "#64b5f6",
-                    color: "#64b5f6",
-                    backgroundColor: "rgba(100, 181, 246, 0.1)",
+                    borderColor: "primary.main",
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
                   },
                   "&.Mui-disabled": {
-                    color: "rgba(255, 255, 255, 0.3)",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    color: "text.disabled",
+                    borderColor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(0, 0, 0, 0.12)",
                   },
                   minWidth: 80,
                   minHeight: 40,
@@ -607,14 +767,14 @@ export default function StudyText() {
                 disabled={!canNext}
                 onClick={() => setIdx((i) => i + 1)}
                 sx={{
-                  backgroundColor: "#1976d2",
-                  color: "#ffffff",
+                  backgroundColor: "primary.main",
+                  color: "primary.contrastText",
                   "&:hover": {
-                    backgroundColor: "#1565c0",
+                    backgroundColor: "primary.dark",
                   },
                   "&.Mui-disabled": {
-                    backgroundColor: "rgba(255, 255, 255, 0.12)",
-                    color: "rgba(255, 255, 255, 0.3)",
+                    backgroundColor: "action.disabledBackground",
+                    color: "text.disabled",
                   },
                   minWidth: 80,
                   minHeight: 40,
@@ -642,12 +802,14 @@ export default function StudyText() {
         maxWidth="sm"
         PaperProps={{
           sx: {
-            bgcolor: "#424242",
-            color: "#ffffff",
+            bgcolor: "background.paper",
+            color: "text.primary",
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ffffff" }}>{t("editText")}</DialogTitle>
+        <DialogTitle sx={{ color: "text.primary" }}>
+          {t("editText")}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -657,14 +819,14 @@ export default function StudyText() {
               inputProps={{ maxLength: 200 }}
               fullWidth
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -676,14 +838,14 @@ export default function StudyText() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -695,14 +857,14 @@ export default function StudyText() {
               multiline
               minRows={6}
               sx={{
-                "& .MuiInputLabel-root": { color: "#b0b0b0" },
-                "& .MuiInputBase-input": { color: "#ffffff" },
+                "& .MuiInputLabel-root": { color: "text.secondary" },
+                "& .MuiInputBase-input": { color: "text.primary" },
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "& fieldset": { borderColor: "divider" },
                   "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderColor: "text.secondary",
                   },
-                  "&.Mui-focused fieldset": { borderColor: "#64b5f6" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
                 },
               }}
             />
@@ -713,7 +875,7 @@ export default function StudyText() {
           <Button
             onClick={() => setEditOpen(false)}
             disabled={isSavingEdit}
-            sx={{ color: "#b0b0b0" }}
+            sx={{ color: "text.secondary" }}
           >
             {t("cancel")}
           </Button>
@@ -752,15 +914,18 @@ export default function StudyText() {
             variant="contained"
             disabled={isSavingEdit}
             sx={{
-              backgroundColor: "#1976d2",
-              color: "#ffffff",
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
               "&:hover": {
-                backgroundColor: "#1565c0",
+                backgroundColor: "primary.dark",
               },
             }}
           >
             {isSavingEdit ? (
-              <CircularProgress size={20} sx={{ color: "#ffffff" }} />
+              <CircularProgress
+                size={20}
+                sx={{ color: "primary.contrastText" }}
+              />
             ) : (
               t("save")
             )}
