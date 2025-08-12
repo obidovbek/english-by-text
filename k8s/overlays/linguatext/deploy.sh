@@ -18,18 +18,15 @@ docker build -t linguatext-backend:latest --target production .
 docker build -t linguatext-backend:migrator --target migrator .
 # Load into k3s containerd if applicable
 if command -v k3s >/dev/null 2>&1; then
-  docker save linguatext-backend:latest -o linguatext-backend.tar
-  docker save linguatext-backend:migrator -o linguatext-backend-migrator.tar
-  k3s ctr images import linguatext-backend.tar
-  k3s ctr images import linguatext-backend-migrator.tar
+  docker image save linguatext-backend:latest | k3s ctr images import -
+  docker image save linguatext-backend:migrator | k3s ctr images import -
 fi
 
 echo "🚀 Building frontend..."
 cd ../frontend/
 docker build --target production -t linguatext-frontend:latest .
 if command -v k3s >/dev/null 2>&1; then
-  docker save linguatext-frontend:latest -o linguatext-frontend.tar
-  k3s ctr images import linguatext-frontend.tar
+  docker image save linguatext-frontend:latest | k3s ctr images import -
 fi
 
 echo "📦 Applying K8s manifests..."

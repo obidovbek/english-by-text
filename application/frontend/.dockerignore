@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+
+# Build outputs
+dist
+build
+coverage
+
+# VCS and IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+.env.*
+
+# Docker and archives
+Dockerfile
+docker-compose*
+*.tar
+*.tgz
+
+# Runtime artifacts
+**/*.log 
