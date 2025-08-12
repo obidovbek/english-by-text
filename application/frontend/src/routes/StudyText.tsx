@@ -622,13 +622,13 @@ export default function StudyText() {
               sx={{ mb: 1.5, justifyContent: "center" }}
             >
               <Button
-                variant="contained"
-                onClick={checkBuilt}
+                variant="text"
+                onClick={() => setShowTokensEditor((v) => !v)}
                 sx={{
-                  backgroundColor: "primary.main",
-                  color: "primary.contrastText",
+                  color: showTokensEditor ? "primary.main" : "text.secondary",
                   "&:hover": {
-                    backgroundColor: "primary.dark",
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
                   },
                   minWidth: 70,
                   minHeight: 36,
@@ -641,7 +641,29 @@ export default function StudyText() {
                   },
                 }}
               >
-                {t("check")}
+                {t("edit")}
+              </Button>
+              <Button
+                variant="text"
+                onClick={revealBuilt}
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": {
+                    color: "primary.main",
+                    backgroundColor: "action.hover",
+                  },
+                  minWidth: 70,
+                  minHeight: 36,
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  "&:active": {
+                    transform: "scale(0.95)",
+                  },
+                }}
+              >
+                {t("reveal")}
               </Button>
               <Button
                 variant="outlined"
@@ -676,13 +698,13 @@ export default function StudyText() {
                 {t("reset")}
               </Button>
               <Button
-                variant="text"
-                onClick={revealBuilt}
+                variant="contained"
+                onClick={checkBuilt}
                 sx={{
-                  color: "text.secondary",
+                  backgroundColor: "primary.main",
+                  color: "primary.contrastText",
                   "&:hover": {
-                    color: "primary.main",
-                    backgroundColor: "action.hover",
+                    backgroundColor: "primary.dark",
                   },
                   minWidth: 70,
                   minHeight: 36,
@@ -695,29 +717,7 @@ export default function StudyText() {
                   },
                 }}
               >
-                {t("reveal")}
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => setShowTokensEditor((v) => !v)}
-                sx={{
-                  color: showTokensEditor ? "primary.main" : "text.secondary",
-                  "&:hover": {
-                    color: "primary.main",
-                    backgroundColor: "action.hover",
-                  },
-                  minWidth: 70,
-                  minHeight: 36,
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  borderRadius: 2,
-                  "&:active": {
-                    transform: "scale(0.95)",
-                  },
-                }}
-              >
-                {t("edit")}
+                {t("check")}
               </Button>
             </Stack>
 
