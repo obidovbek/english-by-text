@@ -128,6 +128,6 @@ case "$MODE" in
     usage
     exit 1
     ;;
-endcase
+esac
 
 echo "✅ Done."
