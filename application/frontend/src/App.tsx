@@ -1,11 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ThemeProvider,
-  createTheme,
-  responsiveFontSizes,
-} from "@mui/material/styles";
-import {
-  CssBaseline,
   AppBar,
   Toolbar,
   Typography,
@@ -31,7 +25,6 @@ import { ensureInitialLocale, locales, setLocale, t } from "./i18n";
 
 function App() {
   const isTWA = Boolean(window.Telegram?.WebApp);
-  const [mode, setMode] = useState<"light" | "dark">("light");
   const [tgFirstName, setTgFirstName] = useState<string | undefined>(undefined);
   const { user, isLoading, error, isTelegram, login } = useTelegramAuth();
   const navigate = useNavigate();
@@ -49,29 +42,9 @@ function App() {
     wa.ready();
     wa.expand();
 
-    // Initialize theme from Telegram
-    if (wa.colorScheme === "dark" || wa.colorScheme === "light") {
-      setMode(wa.colorScheme);
-    }
-
     // Optionally show user's first name when available
     const firstName = wa.initDataUnsafe?.user?.first_name;
     if (firstName) setTgFirstName(firstName);
-
-    // Subscribe to live theme changes
-    const handler = () => {
-      const scheme = wa.colorScheme;
-      if (scheme === "dark" || scheme === "light") {
-        setMode(scheme);
-      }
-    };
-    wa.onEvent("themeChanged", handler);
-
-    return () => {
-      try {
-        wa.offEvent?.("themeChanged", handler);
-      } catch {}
-    };
   }, [isTWA]);
 
   // Auto-login on every app open inside Telegram
@@ -80,57 +53,6 @@ function App() {
       login();
     }
   }, [isTelegram, user, isLoading, login]);
-
-  let theme = useMemo(
-    () =>
-      createTheme({
-        palette: { mode },
-        typography: {
-          fontFamily:
-            "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
-          h3: { fontWeight: 700 },
-          h4: { fontSize: "1.8rem", fontWeight: 700 },
-          h6: { fontSize: "1.1rem", fontWeight: 700 },
-          body1: { fontSize: "1rem", lineHeight: 1.6 },
-          body2: { fontSize: "0.95rem" },
-          button: { textTransform: "none", fontWeight: 600 },
-        },
-        components: {
-          MuiButton: {
-            defaultProps: { size: "large" },
-            styleOverrides: {
-              root: {
-                minHeight: 44,
-                borderRadius: 12,
-                paddingLeft: 16,
-                paddingRight: 16,
-              },
-            },
-          },
-          MuiIconButton: {
-            styleOverrides: {
-              root: { width: 44, height: 44, borderRadius: 12 },
-            },
-          },
-          MuiListItemButton: {
-            styleOverrides: { root: { minHeight: 48, borderRadius: 12 } },
-          },
-          MuiTextField: {
-            defaultProps: { size: "medium" },
-          },
-          MuiContainer: {
-            styleOverrides: { root: { paddingLeft: 16, paddingRight: 16 } },
-          },
-        },
-      }),
-    [mode]
-  );
-
-  theme = responsiveFontSizes(theme);
-
-  const toggleColorMode = () => {
-    setMode((prev) => (prev === "light" ? "dark" : "light"));
-  };
 
   // Language menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -148,8 +70,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
@@ -179,10 +100,10 @@ function App() {
           {!isTWA && (
             <IconButton
               color="inherit"
-              onClick={toggleColorMode}
+              onClick={() => {}} // Theme toggle removed since it's handled globally
               aria-label="toggle theme"
             >
-              {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+              <Brightness4 />
             </IconButton>
           )}
         </Toolbar>
@@ -244,7 +165,7 @@ function App() {
           {error && <Alert severity="error">{error}</Alert>}
         </Box>
       </Container>
-    </ThemeProvider>
+    </>
   );
 }
 
