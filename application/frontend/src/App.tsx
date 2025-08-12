@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import {
   Brightness4,
-  Brightness7,
   Folder as FolderIcon,
   Translate as TranslateIcon,
 } from "@mui/icons-material";
