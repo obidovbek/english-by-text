@@ -50,7 +50,30 @@ function AppWrapper() {
   const theme = useMemo(
     () =>
       createTheme({
-        palette: { mode },
+        palette: {
+          mode,
+          ...(mode === "dark" && {
+            background: {
+              default: "#17212b", // Telegram's dark blue-grey background
+              paper: "#242f3d", // Telegram's slightly lighter dark blue-grey
+            },
+            text: {
+              primary: "#ffffff",
+              secondary: "#a8a8a8",
+            },
+            primary: {
+              main: "#2ea6ff", // Telegram's blue accent color
+              dark: "#1e8bd1",
+            },
+            divider: "rgba(255, 255, 255, 0.12)",
+            action: {
+              hover: "rgba(255, 255, 255, 0.08)",
+              selected: "rgba(255, 255, 255, 0.12)",
+              disabled: "rgba(255, 255, 255, 0.3)",
+              disabledBackground: "rgba(255, 255, 255, 0.12)",
+            },
+          }),
+        },
         typography: {
           fontFamily:
             "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
@@ -118,8 +141,20 @@ try {
     if (tp.bg_color) root.style.setProperty("--tg-bg", tp.bg_color);
     if (tp.text_color) root.style.setProperty("--tg-text", tp.text_color);
     if (tp.link_color) root.style.setProperty("--tg-accent", tp.link_color);
+  } else {
+    // Fallback to Telegram's default dark theme colors
+    const root = document.documentElement;
+    root.style.setProperty("--tg-bg", "#17212b");
+    root.style.setProperty("--tg-text", "#ffffff");
+    root.style.setProperty("--tg-accent", "#2ea6ff");
   }
-} catch {}
+} catch {
+  // Fallback to Telegram's default dark theme colors
+  const root = document.documentElement;
+  root.style.setProperty("--tg-bg", "#17212b");
+  root.style.setProperty("--tg-text", "#ffffff");
+  root.style.setProperty("--tg-accent", "#2ea6ff");
+}
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
