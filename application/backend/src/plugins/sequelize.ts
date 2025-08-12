@@ -20,6 +20,7 @@ declare module 'fastify' {
       Text: typeof TextModel;
       Sentence: typeof SentenceModel;
       Token: typeof TokenModel;
+      Vocabulary: typeof VocabularyModel;
     };
   }
 }
@@ -83,6 +84,19 @@ class TokenModel extends Model<InferAttributes<TokenModel>, InferCreationAttribu
   declare uz: string;
   declare en: string;
   declare pos: string | null;
+  declare note: string | null;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+}
+
+class VocabularyModel extends Model<
+  InferAttributes<VocabularyModel>,
+  InferCreationAttributes<VocabularyModel>
+> {
+  declare id: CreationOptional<number>;
+  declare userId: ForeignKey<UserModel['id']>;
+  declare word: string;
+  declare translation: string;
   declare note: string | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -236,6 +250,25 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
     { sequelize, modelName: 'Token', tableName: 'Tokens', timestamps: true },
   );
 
+  VocabularyModel.init(
+    {
+      id: { type: DataTypes.BIGINT, allowNull: false, autoIncrement: true, primaryKey: true },
+      userId: { type: DataTypes.BIGINT, allowNull: false },
+      word: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        set(value: string) {
+          this.setDataValue('word', (value ?? '').trim());
+        },
+      },
+      translation: { type: DataTypes.STRING(400), allowNull: false },
+      note: { type: DataTypes.TEXT, allowNull: true },
+      createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+      updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    },
+    { sequelize, modelName: 'Vocabulary', tableName: 'Vocabulary', timestamps: true },
+  );
+
   // Associations
   FolderModel.belongsTo(UserModel, { foreignKey: 'userId' });
   FolderModel.belongsTo(FolderModel, { as: 'parent', foreignKey: 'parentId' });
@@ -249,6 +282,7 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
   SentenceModel.hasMany(TokenModel, { as: 'tokens', foreignKey: 'sentenceId' });
 
   TokenModel.belongsTo(SentenceModel, { foreignKey: 'sentenceId' });
+  VocabularyModel.belongsTo(UserModel, { foreignKey: 'userId' });
 
   await sequelize.authenticate();
 
@@ -259,6 +293,7 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
     Text: TextModel,
     Sentence: SentenceModel,
     Token: TokenModel,
+    Vocabulary: VocabularyModel,
   });
 
   fastify.addHook('onClose', async (instance) => {

@@ -142,7 +142,12 @@ const textsRoutes: FastifyPluginAsync = async (fastify) => {
       const text = await fastify.models.Text.findOne({ where: { id, userId } });
       if (!text) return reply.code(404).send({ error: 'Not found' });
 
-      const body = request.body as Partial<{ title?: string; uzRaw?: string; enRaw?: string }>;
+      const body = request.body as Partial<{
+        title?: string;
+        uzRaw?: string;
+        enRaw?: string;
+        folderId?: number;
+      }>;
       const updates: any = {};
       if (body.title !== undefined) {
         const title = String(body.title).trim();
@@ -159,6 +164,14 @@ const textsRoutes: FastifyPluginAsync = async (fastify) => {
         const enRaw = String(body.enRaw);
         if (!enRaw.trim()) return reply.code(400).send({ error: 'enRaw is required' });
         updates.enRaw = enRaw;
+      }
+      if (body.folderId !== undefined) {
+        const folderId = Number(body.folderId);
+        if (!Number.isFinite(folderId)) return reply.code(400).send({ error: 'Invalid folderId' });
+        // ensure new folder belongs to user
+        const folder = await fastify.models.Folder.findOne({ where: { id: folderId, userId } });
+        if (!folder) return reply.code(404).send({ error: 'Folder not found' });
+        updates.folderId = folderId;
       }
 
       // If raw contents are updated, we need to rebuild sentences

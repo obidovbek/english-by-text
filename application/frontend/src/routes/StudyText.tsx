@@ -58,6 +58,15 @@ export default function StudyText() {
   const [buildPool, setBuildPool] = useState<string[]>([]);
   const [buildAnswer, setBuildAnswer] = useState<string[]>([]);
 
+  // Add-to-vocabulary dialog
+  const [vocabOpen, setVocabOpen] = useState(false);
+  const [vocabWord, setVocabWord] = useState("");
+  const [vocabTranslation, setVocabTranslation] = useState("");
+  const [vocabNote, setVocabNote] = useState("");
+  const [vocabSaving, setVocabSaving] = useState(false);
+  const [vocabError, setVocabError] = useState<string | null>(null);
+  const [vocabDropOver, setVocabDropOver] = useState(false);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -198,6 +207,37 @@ export default function StudyText() {
       const idx = buildAnswer.indexOf(word);
       if (idx >= 0) setBuildAnswer((a) => a.filter((_, i) => i !== idx));
       setBuildPool((p) => [...p, word]);
+    }
+  }
+
+  function openVocabDialog(word: string) {
+    setVocabWord(word);
+    setVocabTranslation("");
+    setVocabNote("");
+    setVocabError(null);
+    setVocabOpen(true);
+  }
+
+  async function saveVocab() {
+    const w = vocabWord.trim();
+    const tr = vocabTranslation.trim();
+    if (!w || !tr) {
+      setVocabError(t("pleaseFillAllFieldsCorrectly"));
+      return;
+    }
+    try {
+      setVocabSaving(true);
+      await postJSON(`/api/vocabulary`, {
+        word: w,
+        translation: tr,
+        note: vocabNote.trim() || undefined,
+      });
+      setToast(t("saved"));
+      setVocabOpen(false);
+    } catch (e) {
+      setVocabError(e instanceof Error ? e.message : t("failed"));
+    } finally {
+      setVocabSaving(false);
     }
   }
 
@@ -405,6 +445,15 @@ export default function StudyText() {
                       size="small"
                       variant="contained"
                       onClick={() => moveWord(w, false)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        openVocabDialog(w);
+                      }}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("application/x-ebt-word", w);
+                        e.dataTransfer.effectAllowed = "copyMove";
+                      }}
                       sx={{
                         borderRadius: 1.5,
                         px: 1.2,
@@ -459,6 +508,15 @@ export default function StudyText() {
                     size="small"
                     variant="outlined"
                     onClick={() => moveWord(w, true)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      openVocabDialog(w);
+                    }}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/x-ebt-word", w);
+                      e.dataTransfer.effectAllowed = "copyMove";
+                    }}
                     sx={{
                       borderRadius: 1.5,
                       px: 1.2,
@@ -621,6 +679,40 @@ export default function StudyText() {
               spacing={1}
               sx={{ mb: 1.5, justifyContent: "center" }}
             >
+              <Button
+                variant={vocabDropOver ? "contained" : "outlined"}
+                onClick={() => {
+                  // If clicked without drag, open empty dialog
+                  openVocabDialog("");
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setVocabDropOver(true);
+                }}
+                onDragLeave={() => setVocabDropOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setVocabDropOver(false);
+                  const word =
+                    e.dataTransfer.getData("application/x-ebt-word") ||
+                    e.dataTransfer.getData("text/plain");
+                  if (!word) return;
+                  openVocabDialog(word);
+                }}
+                sx={{
+                  minWidth: 90,
+                  borderRadius: 2,
+                  color: vocabDropOver
+                    ? "primary.contrastText"
+                    : "text.primary",
+                  borderColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.3)"
+                      : "rgba(0, 0, 0, 0.3)",
+                }}
+              >
+                {t("vocabulary")}
+              </Button>
               <Button
                 variant="text"
                 onClick={() => setShowTokensEditor((v) => !v)}
@@ -929,6 +1021,50 @@ export default function StudyText() {
             ) : (
               t("save")
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add to vocabulary dialog */}
+      <Dialog
+        open={vocabOpen}
+        onClose={() => setVocabOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ color: "text.primary" }}>
+          {t("addToVocabulary")}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t("wordLabel")}
+              value={vocabWord}
+              onChange={(e) => setVocabWord(e.target.value)}
+            />
+            <TextField
+              label={t("translationLabel")}
+              value={vocabTranslation}
+              onChange={(e) => setVocabTranslation(e.target.value)}
+            />
+            <TextField
+              label={t("noteLabel")}
+              value={vocabNote}
+              onChange={(e) => setVocabNote(e.target.value)}
+              multiline
+              minRows={3}
+            />
+            {vocabError && <Alert severity="error">{vocabError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVocabOpen(false)}>{t("cancel")}</Button>
+          <Button
+            onClick={() => void saveVocab()}
+            variant="contained"
+            disabled={vocabSaving}
+          >
+            {vocabSaving ? t("loading") : t("save")}
           </Button>
         </DialogActions>
       </Dialog>

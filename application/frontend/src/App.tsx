@@ -71,7 +71,7 @@ function App() {
 
   return (
     <>
-      <AppBar position="static">
+      <AppBar position="static" sx={{ mt: isTWA ? 10 : 0 }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {t("appTitle")}
@@ -82,6 +82,9 @@ function App() {
             onClick={() => navigate("/folders")}
           >
             {t("folders")}
+          </Button>
+          <Button color="inherit" onClick={() => navigate("/vocabulary")}>
+            Vocabulary
           </Button>
           <IconButton
             color="inherit"

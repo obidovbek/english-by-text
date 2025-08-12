@@ -12,6 +12,7 @@ import "./App.css";
 import App from "./App.tsx";
 import Folders from "./routes/Folders.tsx";
 import StudyText from "./routes/StudyText.tsx";
+import Vocabulary from "./routes/Vocabulary.tsx";
 
 function AppWrapper() {
   const isTWA = Boolean(window.Telegram?.WebApp);
@@ -160,6 +161,7 @@ const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/folders", element: <Folders /> },
   { path: "/texts/:id", element: <StudyText /> },
+  { path: "/vocabulary", element: <Vocabulary /> },
 ]);
 
 createRoot(rootElement).render(

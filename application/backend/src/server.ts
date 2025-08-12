@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import foldersRoutes from './routes/folders';
 import textsRoutes from './routes/texts';
 import tokensRoutes from './routes/tokens';
+import vocabularyRoutes from './routes/vocabulary';
 
 const app = Fastify({
   logger: true,
@@ -17,6 +18,7 @@ app.register(authRoutes);
 app.register(foldersRoutes);
 app.register(textsRoutes);
 app.register(tokensRoutes);
+app.register(vocabularyRoutes);
 
 const port = Number(process.env.PORT) || 4000;
 const host = '0.0.0.0';

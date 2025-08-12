@@ -318,6 +318,45 @@ export default function Folders() {
               <MoreVert />
             </IconButton>
           }
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(
+              "application/x-ebt-item",
+              JSON.stringify({ type: "folder", id: f.id })
+            );
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            const data = e.dataTransfer.getData("application/x-ebt-item");
+            if (!data) return;
+            try {
+              const parsed = JSON.parse(data) as {
+                type: "folder" | "text";
+                id: number | string;
+              };
+              if (parsed.type === "folder") {
+                // Move folder under f.id
+                await patchJSON(`/api/folders/${parsed.id}`, {
+                  parentId: f.id,
+                });
+                mainFolderCache.clear();
+                clearFolderCache();
+                await loadFolders();
+              } else if (parsed.type === "text" && parentId) {
+                // Move text into this folder
+                await patchJSON(`/api/texts/${parsed.id}`, { folderId: f.id });
+                // If we are viewing a folder, remove text from current list if moved away
+                setTexts((prev) => prev.filter((x) => x.id !== parsed.id));
+                clearFolderCache();
+              }
+            } catch (err) {
+              console.error(err);
+              setToast(t("failed"));
+            }
+          }}
         >
           <ListItemButton
             onClick={() => {
@@ -362,6 +401,13 @@ export default function Folders() {
               <MoreVert />
             </IconButton>
           }
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(
+              "application/x-ebt-item",
+              JSON.stringify({ type: "text", id: tx.id })
+            );
+          }}
         >
           <ListItemButton
             onClick={() => navigate(`/texts/${tx.id}`)}
@@ -396,9 +442,61 @@ export default function Folders() {
         {parentId && (
           <IconButton
             aria-label={t("back")}
-            onClick={() => {
-              params.delete("parentId");
-              setParams(params, { replace: true });
+            onClick={async () => {
+              try {
+                const current = await apiGet<FolderDTO>(
+                  `/api/folders/${parentId}`
+                );
+                if (
+                  current.parentId === null ||
+                  current.parentId === undefined
+                ) {
+                  params.delete("parentId");
+                } else {
+                  params.set("parentId", String(current.parentId));
+                }
+                setParams(params, { replace: true });
+              } catch {
+                // Fallback to root on error
+                params.delete("parentId");
+                setParams(params, { replace: true });
+              }
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={async (e) => {
+              if (!parentId) return;
+              const data = e.dataTransfer.getData("application/x-ebt-item");
+              if (!data) return;
+              try {
+                const current = await apiGet<FolderDTO>(
+                  `/api/folders/${parentId}`
+                );
+                const targetParentId = current.parentId ?? null;
+                const parsed = JSON.parse(data) as {
+                  type: "folder" | "text";
+                  id: number | string;
+                };
+                if (parsed.type === "folder") {
+                  await patchJSON(`/api/folders/${parsed.id}`, {
+                    parentId: targetParentId,
+                  });
+                } else {
+                  if (targetParentId === null) {
+                    // Texts cannot live at root; ignore
+                    setToast(t("failed"));
+                    return;
+                  }
+                  await patchJSON(`/api/texts/${parsed.id}`, {
+                    folderId: targetParentId,
+                  });
+                }
+                mainFolderCache.clear();
+                clearFolderCache();
+                await loadFolders();
+              } catch (err) {
+                console.error(err);
+                setToast(t("failed"));
+              }
             }}
             sx={{
               bgcolor:
@@ -448,6 +546,13 @@ export default function Folders() {
           </Button>
         )}
         <Button
+          variant="outlined"
+          onClick={() => navigate("/vocabulary")}
+          sx={{ mr: 1 }}
+        >
+          {t("vocabulary")}
+        </Button>
+        <Button
           variant="contained"
           startIcon={<CreateNewFolder sx={{ color: "primary.contrastText" }} />}
           onClick={() => setDialogOpen(true)}
@@ -480,6 +585,70 @@ export default function Folders() {
                 setParams(params, { replace: true });
               }
             }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={async (e) => {
+              const data = e.dataTransfer.getData("application/x-ebt-item");
+              if (!data) return;
+              try {
+                const parsed = JSON.parse(data) as {
+                  type: "folder" | "text";
+                  id: number | string;
+                };
+                if (idx === 0) {
+                  // If we are inside a subfolder, dropping on 'Root' acts as one level up
+                  let target: number | null = null;
+                  if (parentId) {
+                    const current = await apiGet<FolderDTO>(
+                      `/api/folders/${parentId}`
+                    );
+                    target = current.parentId ?? null;
+                  } else {
+                    target = null; // already at root
+                  }
+                  if (parsed.type === "folder") {
+                    await patchJSON(`/api/folders/${parsed.id}`, {
+                      parentId: target,
+                    });
+                  } else {
+                    if (target === null) {
+                      setToast(t("failed"));
+                      return;
+                    }
+                    await patchJSON(`/api/texts/${parsed.id}`, {
+                      folderId: target,
+                    });
+                  }
+                  mainFolderCache.clear();
+                  clearFolderCache();
+                  await loadFolders();
+                } else if (idx === 1 && parentId) {
+                  // '..' crumb also moves to parent (one level up)
+                  const current = await apiGet<FolderDTO>(
+                    `/api/folders/${parentId}`
+                  );
+                  const target = current.parentId ?? null;
+                  if (parsed.type === "folder") {
+                    await patchJSON(`/api/folders/${parsed.id}`, {
+                      parentId: target,
+                    });
+                  } else {
+                    if (target === null) {
+                      setToast(t("failed"));
+                      return;
+                    }
+                    await patchJSON(`/api/texts/${parsed.id}`, {
+                      folderId: target,
+                    });
+                  }
+                  mainFolderCache.clear();
+                  clearFolderCache();
+                  await loadFolders();
+                }
+              } catch (err) {
+                console.error(err);
+                setToast(t("failed"));
+              }
+            }}
             sx={{
               color: "text.primary",
               textDecoration: "none",
@@ -495,7 +664,7 @@ export default function Folders() {
       </Breadcrumbs>
 
       {/* Text list for current folder */}
-      {parentId && (
+      {parentId && (isLoading || texts.length > 0) && (
         <Box sx={{ mb: 2 }}>
           <Typography
             variant="subtitle1"
@@ -521,51 +690,41 @@ export default function Folders() {
             </Stack>
           ) : texts.length > 0 ? (
             <List>{memoizedTexts}</List>
-          ) : (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {t("noTextsYet")}
-            </Typography>
-          )}
+          ) : null}
         </Box>
       )}
 
       {/* Folders list */}
-      <Typography
-        variant="subtitle1"
-        sx={{ mb: 1, color: "text.primary", fontWeight: 600 }}
-      >
-        {t("folders")}
-      </Typography>
-      {isLoading ? (
-        <Stack spacing={1}>
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton
-              key={i}
-              variant="rectangular"
-              height={56}
-              sx={{
-                bgcolor:
-                  theme.palette.mode === "dark"
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-              }}
-            />
-          ))}
-        </Stack>
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : (
-        <List>
-          {memoizedFolders}
-          {folders.length === 0 && (
-            <ListItem disableGutters>
-              <ListItemText
-                primary={t("noFoldersYet")}
-                primaryTypographyProps={{ sx: { color: "text.secondary" } }}
-              />
-            </ListItem>
+      {(isLoading || error || folders.length > 0) && (
+        <>
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 1, color: "text.primary", fontWeight: 600 }}
+          >
+            {t("folders")}
+          </Typography>
+          {isLoading ? (
+            <Stack spacing={1}>
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton
+                  key={i}
+                  variant="rectangular"
+                  height={56}
+                  sx={{
+                    bgcolor:
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                  }}
+                />
+              ))}
+            </Stack>
+          ) : error ? (
+            <Alert severity="error">{error}</Alert>
+          ) : (
+            <List>{memoizedFolders}</List>
           )}
-        </List>
+        </>
       )}
 
       {/* Context Menu */}

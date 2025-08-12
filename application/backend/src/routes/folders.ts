@@ -122,7 +122,7 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
       }
     });
 
-    // PATCH -> rename folder
+    // PATCH -> rename folder or move folder (change parentId)
     fastify.patch(`${base}/:id`, async (request, reply) => {
       const userId = getUserId(request);
       if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
@@ -132,14 +132,52 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
       const folder = await fastify.models.Folder.findOne({ where: { id, userId } });
       if (!folder) return reply.code(404).send({ error: 'Not found' });
 
-      const body = request.body as Partial<{ name?: string }>;
-      const name = (body?.name ?? '').toString().trim();
-      if (!name) return reply.code(400).send({ error: 'Name is required' });
-      if (name.length < 1 || name.length > 100)
-        return reply.code(400).send({ error: 'Name must be 1-100 characters' });
+      const body = request.body as Partial<{ name?: string; parentId?: number | null }>;
+      const updates: any = {};
+
+      if (body.name !== undefined) {
+        const name = (body.name ?? '').toString().trim();
+        if (!name) return reply.code(400).send({ error: 'Name is required' });
+        if (name.length < 1 || name.length > 100)
+          return reply.code(400).send({ error: 'Name must be 1-100 characters' });
+        updates.name = name;
+      }
+
+      if (body.parentId !== undefined) {
+        const newParentId = body.parentId === null ? null : Number(body.parentId);
+        if (newParentId !== null && !Number.isFinite(newParentId)) {
+          return reply.code(400).send({ error: 'Invalid parentId' });
+        }
+        if (newParentId === id) {
+          return reply.code(400).send({ error: 'Cannot move folder into itself' });
+        }
+        if (newParentId !== null) {
+          const newParent = await fastify.models.Folder.findOne({
+            where: { id: newParentId, userId },
+          });
+          if (!newParent) return reply.code(404).send({ error: 'Parent not found' });
+          // Prevent cycles: ensure id is not an ancestor of newParent
+          let cursor: any = newParent;
+          while (cursor) {
+            if (cursor.id === id) {
+              return reply.code(400).send({ error: 'Cannot move folder into its descendant' });
+            }
+            if (!cursor.parentId) break;
+            cursor = await fastify.models.Folder.findOne({
+              where: { id: cursor.parentId, userId },
+              attributes: ['id', 'parentId'],
+            });
+          }
+        }
+        updates.parentId = newParentId;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return reply.code(400).send({ error: 'No fields to update' });
+      }
 
       try {
-        await (folder as any).update({ name });
+        await (folder as any).update(updates);
         return reply.send({
           id: (folder as any).id,
           name: (folder as any).name,
@@ -152,8 +190,8 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
         if (message.includes('folders_user_parent_name_unique') || message.includes('unique')) {
           return reply.code(409).send({ error: 'Name already exists' });
         }
-        request.log.error({ err }, 'Failed to rename folder');
-        return reply.code(500).send({ error: 'Failed to rename folder' });
+        request.log.error({ err }, 'Failed to rename/move folder');
+        return reply.code(500).send({ error: 'Failed to update folder' });
       }
     });
 

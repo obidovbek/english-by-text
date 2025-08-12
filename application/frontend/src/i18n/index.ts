@@ -65,6 +65,12 @@ const uz: Messages = {
   failed: "Xatolik",
   failedOpenEditor: "Muharrirni ochib bo‘lmadi",
   tapWordsBelow: "Quyidagi so‘zlarni bosing",
+  // Vocabulary
+  vocabulary: "Lug‘at",
+  addToVocabulary: "Lug‘atga qo‘shish",
+  wordLabel: "So‘z",
+  translationLabel: "Tarjima",
+  noteLabel: "Izoh",
 };
 
 const en: Messages = {
@@ -131,6 +137,12 @@ const en: Messages = {
   failed: "Failed",
   failedOpenEditor: "Failed to open editor",
   tapWordsBelow: "Tap words below",
+  // Vocabulary
+  vocabulary: "Vocabulary",
+  addToVocabulary: "Add to vocabulary",
+  wordLabel: "Word",
+  translationLabel: "Translation",
+  noteLabel: "Note",
 };
 
 const ru: Messages = {
@@ -195,6 +207,11 @@ const ru: Messages = {
   failed: "Ошибка",
   failedOpenEditor: "Не удалось открыть редактор",
   tapWordsBelow: "Нажмите на слова ниже",
+  vocabulary: "Словарь",
+  addToVocabulary: "Добавить в словарь",
+  wordLabel: "Слово",
+  translationLabel: "Перевод",
+  noteLabel: "Заметка",
 };
 
 const ko: Messages = {
@@ -259,6 +276,11 @@ const ko: Messages = {
   failed: "실패함",
   failedOpenEditor: "편집기를 열지 못했습니다",
   tapWordsBelow: "아래의 단어를 누르세요",
+  vocabulary: "어휘",
+  addToVocabulary: "어휘에 추가",
+  wordLabel: "단어",
+  translationLabel: "번역",
+  noteLabel: "메모",
 };
 
 const tr: Messages = {
@@ -323,6 +345,11 @@ const tr: Messages = {
   failed: "Başarısız",
   failedOpenEditor: "Düzenleyici açılamadı",
   tapWordsBelow: "Aşağıdaki kelimelere dokunun",
+  vocabulary: "Sözlük",
+  addToVocabulary: "Sözlüğe ekle",
+  wordLabel: "Kelime",
+  translationLabel: "Çeviri",
+  noteLabel: "Not",
 };
 
 const dict: Record<string, Messages> = { uz, en, ru, ko, tr };
