@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { ensureInitialLocale, locales, setLocale, t } from "./i18n";
 
 function App() {
+  //d
   const isTWA = Boolean(window.Telegram?.WebApp);
   const [tgFirstName, setTgFirstName] = useState<string | undefined>(undefined);
   const { user, isLoading, error, isTelegram, login } = useTelegramAuth();
