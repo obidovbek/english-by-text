@@ -69,7 +69,7 @@ function App() {
   const handleSelectLocale = (code: string) => {
     setLocale(code);
     handleLangClose();
-    // Force a re-render of strings; simplest is to reload quickly
+    // Force a re-render of strings; simplest is to reload quickly s
     window.location.reload();
   };
 
