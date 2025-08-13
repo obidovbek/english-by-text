@@ -8,6 +8,7 @@ volumes:
   postgres_data:
   backend_node_modules:
   frontend_node_modules:
+  piper_models:
 
 services:
   postgres:
@@ -38,6 +39,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      stt:
+        condition: service_started
+      tts-piper:
+        condition: service_started
+      tts-uz:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -49,6 +56,10 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       CHOKIDAR_USEPOLLING: "true"
+      # Prefer local service, fallback is ngrok if provided
+      STT_SERVICE_URL: ${STT_SERVICE_URL:-http://nginx:80/stt-api/}
+      PIPER_TTS_URL: http://tts-piper:8080/api/tts
+      COQUI_TTS_URL: http://tts-uz:5002/api/tts
     command: sh -c "npm run db:migrate && npm run db:seed && npm run dev"
     volumes:
       - ./backend:/app
@@ -103,5 +114,40 @@ services:
     command: http --domain=${NGROK_DOMAIN:-wombat-accepted-whale.ngrok-free.app} http://frontend:5173
     ports:
       - "4040:4040" # ngrok web UI
+    networks:
+      - app
+
+  stt:
+    image: ghcr.io/plaggy/asrdiarization-server:latest
+    container_name: linguatext_stt
+    environment:
+      ASR_MODEL: ${ASR_MODEL:-openai/whisper-small}
+    ports:
+      - "7860:7860"
+    networks:
+      - app
+
+  tts-piper:
+    image: ghcr.io/arunk140/serve-piper-tts:latest
+    container_name: linguatext_tts_piper
+    volumes:
+      - piper_models:/app/models
+    environment:
+      # optional env for the wrapper if any are supported in image
+      TZ: Etc/UTC
+    ports:
+      - "8081:8080"
+    networks:
+      - app
+
+  tts-uz:
+    image: ghcr.io/coqui-ai/tts-cpu:latest
+    container_name: linguatext_tts_uz
+    entrypoint: ["/bin/sh", "-lc"]
+    command: python3 -m TTS.server.server --model_name tts_models/multilingual/multi-dataset/xtts_v2
+    ports:
+      - "5002:5002"
+    environment:
+      COQUI_TOS_AGREED: "1"
     networks:
       - app

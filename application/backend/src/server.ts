@@ -8,10 +8,20 @@ import textsRoutes from './routes/texts';
 import tokensRoutes from './routes/tokens';
 import vocabularyRoutes from './routes/vocabulary';
 import telegramRoutes from './routes/telegram';
+import studyRoutes from './routes/study';
 
 const app = Fastify({
   logger: true,
 });
+
+// Accept raw/binary audio uploads (webm/wav/mpeg and generic octet-stream)
+app.addContentTypeParser(
+  ['application/octet-stream', 'audio/webm', 'audio/wav', 'audio/mpeg', 'video/webm'],
+  function (_request, payload, done) {
+    // Do not consume the stream; pass it through so routes can read Buffer/stream
+    done(null, payload);
+  },
+);
 
 app.register(sequelizePlugin);
 app.register(healthRoutes);
@@ -21,6 +31,7 @@ app.register(textsRoutes);
 app.register(tokensRoutes);
 app.register(vocabularyRoutes);
 app.register(telegramRoutes);
+app.register(studyRoutes);
 
 const port = Number(process.env.PORT) || 4000;
 const host = '0.0.0.0';

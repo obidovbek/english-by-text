@@ -8,8 +8,9 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "lib": ["ES2020", "DOM"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
-} 
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { getJSON, postJSON, deleteJSON, patchJSON } from "../api/client";
 import {
   Box,
@@ -17,6 +17,7 @@ import {
   Snackbar,
   Alert,
   useTheme,
+  LinearProgress,
 } from "@mui/material";
 import {
   Delete,
@@ -24,6 +25,11 @@ import {
   Visibility,
   VisibilityOff,
   Edit,
+  PlayArrow,
+  Mic,
+  Stop,
+  CheckCircle,
+  Cancel,
 } from "@mui/icons-material";
 import { SwapHoriz } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -78,8 +84,27 @@ export default function Vocabulary() {
   const [editWord, setEditWord] = useState("");
   const [editTranslation, setEditTranslation] = useState("");
   const [editNote, setEditNote] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
+
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Recording state
+  const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [evaluations, setEvaluations] = useState<
+    Record<string, { correct: boolean; similarity: number; transcript: string }>
+  >({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // Practice session state
+  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionIndex, setSessionIndex] = useState(0);
+  const sessionOrderRef = useRef<string[]>([]);
+  const sessionActiveRef = useRef(false);
+  const [sessionStatus, setSessionStatus] = useState<string>("");
+  useEffect(() => {
+    sessionActiveRef.current = sessionActive;
+  }, [sessionActive]);
 
   useEffect(() => {
     (async () => {
@@ -155,260 +180,456 @@ export default function Vocabulary() {
     setEditWord(item.word);
     setEditTranslation(item.translation);
     setEditNote(item.note || "");
-    setEditError(null);
     setEditOpen(true);
   }
 
   async function saveEdit() {
-    const id = editId!;
-    const w = editWord.trim();
-    const tr = editTranslation.trim();
-    if (!w || !tr) {
-      setEditError(t("pleaseFillAllFieldsCorrectly"));
-      return;
-    }
+    if (!editId) return;
     try {
       setIsSavingEdit(true);
-      const updated = await patchJSON<
-        { word: string; translation: string; note?: string | null },
-        VocabItem
-      >(`/api/vocabulary/${id}`, {
-        word: w,
-        translation: tr,
-        note: editNote.trim() || null,
-      });
-      setItems((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, ...updated } : x))
+      const updated = await patchJSON<Partial<VocabItem>, VocabItem>(
+        `/api/vocabulary/${editId}`,
+        {
+          word: editWord,
+          translation: editTranslation,
+          note: editNote,
+        }
       );
-      setToast(t("saved"));
+      setItems((prev) =>
+        prev.map((x) => (x.id === editId ? { ...x, ...updated } : x))
+      );
       setEditOpen(false);
+      setToast(t("saved"));
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : t("failed"));
+      setToast(e instanceof Error ? e.message : t("failed"));
     } finally {
       setIsSavingEdit(false);
     }
   }
 
-  return (
-    <Box sx={{ p: 2, bgcolor: "background.default", minHeight: "100vh" }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <IconButton
-          aria-label="back"
-          onClick={() => navigate(-1)}
-          sx={{
-            bgcolor:
-              theme.palette.mode === "dark"
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            borderRadius: 2,
-            color: "text.primary",
-            "&:hover": {
-              bgcolor:
-                theme.palette.mode === "dark"
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(0, 0, 0, 0.2)",
-              color: "primary.main",
+  const extractErrorText = async (res: Response) => {
+    const text = await res.text();
+    try {
+      const j = text ? JSON.parse(text) : null;
+      const msg = j && (j.error || j.message);
+      return msg || text || t("failed");
+    } catch {
+      return text || t("failed");
+    }
+  };
+
+  async function playTTS(text: string, language?: string) {
+    try {
+      const res = await fetch(`/api/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language }),
+      });
+      if (!res.ok) throw new Error(await extractErrorText(res));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>((resolve) => {
+        const audio = new Audio(url);
+        let resolved = false;
+        const safeResolve = () => {
+          if (resolved) return;
+          resolved = true;
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        audio.onended = safeResolve;
+        audio.onerror = safeResolve;
+        audio.onloadedmetadata = () => {
+          if (isFinite(audio.duration) && audio.duration > 0) {
+            setTimeout(safeResolve, Math.ceil(audio.duration * 1000) + 100);
+          }
+        };
+        const p = audio.play();
+        if (p && typeof (p as any).then === "function") {
+          (p as Promise<void>).catch(() => safeResolve());
+        }
+        // Absolute fallback so we never hang (e.g., metadata never loads)
+        setTimeout(safeResolve, 7000);
+      });
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : t("failed"));
+    }
+  }
+
+  async function startRecordingFor(
+    id: string,
+    targetText: string,
+    language?: string
+  ) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mr;
+      audioChunksRef.current = [];
+      setRecordingId(id);
+      setRecording(true);
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        setRecording(false);
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        try {
+          const res = await fetch(`/api/stt`, { method: "POST", body: blob });
+          if (!res.ok) throw new Error(await extractErrorText(res));
+          const { text } = (await res.json()) as { text: string };
+          const evRes = await fetch(`/api/evaluate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target: targetText,
+              hypothesis: text,
+              language,
+            }),
+          });
+          const ev = await evRes.json();
+          setEvaluations((prev) => ({
+            ...prev,
+            [id]: {
+              correct: !!ev.correct,
+              similarity: ev.similarity ?? 0,
+              transcript: text,
             },
-          }}
-        >
-          <ArrowBack fontSize="small" />
+          }));
+        } catch (e) {
+          setToast(e instanceof Error ? e.message : t("failed"));
+        }
+      };
+      mr.start();
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : t("failed"));
+    }
+  }
+
+  function stopRecording() {
+    const mr = mediaRecorderRef.current;
+    if (mr && recording) mr.stop();
+  }
+
+  // Auto record for a fixed duration, then evaluate
+  async function recordAndEvaluate(
+    id: string,
+    targetText: string,
+    language: string = "en",
+    durationMs: number = 3000
+  ): Promise<{
+    correct: boolean;
+    similarity: number;
+    transcript: string;
+  } | null> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mr;
+      audioChunksRef.current = [];
+      setRecordingId(id);
+      setRecording(true);
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      const done = new Promise<{
+        correct: boolean;
+        similarity: number;
+        transcript: string;
+      } | null>((resolve) => {
+        mr.onstop = async () => {
+          setRecording(false);
+          const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          try {
+            const res = await fetch(`/api/stt`, { method: "POST", body: blob });
+            if (!res.ok) throw new Error(await extractErrorText(res));
+            const { text } = (await res.json()) as { text: string };
+            const evRes = await fetch(`/api/evaluate`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                target: targetText,
+                hypothesis: text,
+                language,
+              }),
+            });
+            const ev = await evRes.json();
+            const result = {
+              correct: !!ev.correct,
+              similarity: ev.similarity ?? 0,
+              transcript: text,
+            };
+            setEvaluations((prev) => ({
+              ...prev,
+              [id]: result,
+            }));
+            resolve(result);
+          } catch (err) {
+            setToast(err instanceof Error ? err.message : t("failed"));
+            resolve(null);
+          } finally {
+            // Stop all tracks from this capture
+            stream.getTracks().forEach((trk) => trk.stop());
+          }
+        };
+      });
+
+      mr.start();
+      setTimeout(() => {
+        if (mediaRecorderRef.current === mr && mr.state !== "inactive")
+          mr.stop();
+      }, durationMs);
+      const res = await done;
+      return res;
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : t("failed"));
+      return null;
+    }
+  }
+
+  async function runSessionFrom(startIdx: number) {
+    for (let i = startIdx; i < sessionOrderRef.current.length; i += 1) {
+      if (!sessionActiveRef.current) break;
+      const id = sessionOrderRef.current[i];
+      const item = items.find((x) => String(x.id) === id);
+      if (!item) continue;
+      const tr = (item.translation || "").trim();
+      setSessionStatus(`${i + 1}/${sessionOrderRef.current.length}: listen`);
+      if (tr) {
+        await playTTS(tr);
+      }
+      if (!sessionActiveRef.current) break;
+      setSessionStatus(`${i + 1}/${sessionOrderRef.current.length}: speak`);
+      const result = await recordAndEvaluate(id, item.word, "en");
+      if (!sessionActiveRef.current) break;
+      if (result && result.correct) {
+        await playTTS(result.transcript || item.word, "en");
+      } else {
+        await playTTS(item.word, "en");
+      }
+      if (!sessionActiveRef.current) break;
+      setSessionIndex(i + 1);
+    }
+    setSessionActive(false);
+    setSessionStatus("");
+  }
+
+  function startPractice() {
+    if (!items.length) return;
+    // Update UI immediately
+    setSessionActive(true);
+    setSessionStatus("starting");
+    // Preflight mic permission
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        stream.getTracks().forEach((t) => t.stop());
+        sessionOrderRef.current = items.map((it) => String(it.id));
+        setSessionIndex(0);
+        void runSessionFrom(0);
+      })
+      .catch((err) => {
+        setToast(err instanceof Error ? err.message : t("failed"));
+        setSessionActive(false);
+        setSessionStatus("");
+      });
+  }
+
+  function stopPractice() {
+    setSessionActive(false);
+    stopRecording();
+    setSessionStatus("");
+  }
+
+  return (
+    <Box sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+        <IconButton onClick={() => navigate(-1)}>
+          <ArrowBack />
         </IconButton>
-        <Typography
-          variant="h6"
-          sx={{ color: "text.primary", fontWeight: 700, flexGrow: 1 }}
-        >
-          {t("vocabulary")}
-        </Typography>
-        <Button
-          variant="text"
-          startIcon={<SwapHoriz />}
+        <Typography variant="h5">{t("vocabulary")}</Typography>
+        <Box flexGrow={1} />
+        <IconButton
           onClick={() =>
             setPrimaryField((p) => (p === "word" ? "translation" : "word"))
           }
-          sx={{
-            color: "text.secondary",
-            "&:hover": {
-              color: "primary.main",
-              backgroundColor: "action.hover",
-            },
-            mr: 1,
-          }}
         >
-          {primaryField === "word" ? t("translationFirst") : t("wordFirst")}
-        </Button>
+          <SwapHoriz />
+        </IconButton>
+        {sessionActive ? (
+          <Button
+            startIcon={<Stop />}
+            color="error"
+            variant="outlined"
+            onClick={stopPractice}
+          >
+            Stop
+          </Button>
+        ) : (
+          <Button
+            startIcon={<PlayArrow />}
+            variant="outlined"
+            onClick={startPractice}
+          >
+            Practice
+          </Button>
+        )}
+        {sessionActive && (
+          <Typography variant="body2" sx={{ ml: 1 }}>
+            {sessionStatus}
+          </Typography>
+        )}
         <Button
+          startIcon={<Add />}
           variant="contained"
-          startIcon={<Add sx={{ color: "primary.contrastText" }} />}
           onClick={() => setDialogOpen(true)}
-          sx={{
-            backgroundColor: "primary.main",
-            color: "primary.contrastText",
-          }}
         >
-          {t("create")}
+          {t("add")}
         </Button>
       </Stack>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("loading")}</Typography>
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : items.length === 0 ? (
-        <Typography sx={{ color: "text.secondary" }}>
-          {t("noSentences")}
-        </Typography>
-      ) : (
-        <List>
-          {items.map((it) => {
-            const isRevealed = revealedIds.has(String(it.id));
-            const primaryText =
-              primaryField === "word" ? it.word : it.translation;
-            const otherText =
-              primaryField === "word" ? it.translation : it.word;
-            return (
-              <ListItem
-                key={String(it.id)}
-                secondaryAction={
-                  <Box>
-                    <IconButton
-                      edge="end"
-                      aria-label="reveal"
-                      onClick={() => toggleReveal(it.id)}
-                      sx={{ mr: 0.5, color: "text.primary" }}
-                    >
-                      {isRevealed ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label="edit"
-                      onClick={() => openEditDialog(it)}
-                      sx={{ mr: 0.5, color: "text.primary" }}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      onClick={() => removeItem(it.id)}
-                      sx={{ color: theme.palette.error.main }}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Box>
-                }
-              >
-                <ListItemText
-                  primary={primaryText}
-                  secondary={
-                    isRevealed
-                      ? [otherText, it.note].filter(Boolean).join(" — ")
-                      : undefined
-                  }
-                  primaryTypographyProps={{
-                    sx: { color: "text.primary", fontWeight: 600 },
-                  }}
-                  secondaryTypographyProps={{ sx: { color: "text.secondary" } }}
-                />
-              </ListItem>
-            );
-          })}
-        </List>
-      )}
+      {isLoading && <LinearProgress />}
+      {error && <Alert severity="error">{error}</Alert>}
 
-      {/* Create dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle sx={{ color: "text.primary" }}>
-          {t("addToVocabulary")}
-        </DialogTitle>
+      <List>
+        {items.map((item) => {
+          const key = String(item.id);
+          const revealed = revealedIds.has(key);
+          const evalRes = evaluations[key];
+          return (
+            <ListItem
+              key={key}
+              secondaryAction={
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <IconButton
+                    onClick={() => playTTS(item.translation)}
+                    title="Play"
+                  >
+                    <PlayArrow />
+                  </IconButton>
+                  {recording && recordingId === key ? (
+                    <IconButton
+                      color="error"
+                      onClick={stopRecording}
+                      title="Stop"
+                    >
+                      <Stop />
+                    </IconButton>
+                  ) : (
+                    <IconButton
+                      onClick={() => startRecordingFor(key, item.word, "en")}
+                      title="Speak"
+                    >
+                      <Mic />
+                    </IconButton>
+                  )}
+                  {evalRes &&
+                    (evalRes.correct ? (
+                      <CheckCircle color="success" />
+                    ) : (
+                      <Cancel color="error" />
+                    ))}
+                  <IconButton onClick={() => openEditDialog(item)}>
+                    <Edit />
+                  </IconButton>
+                  <IconButton onClick={() => removeItem(item.id)}>
+                    <Delete />
+                  </IconButton>
+                </Stack>
+              }
+            >
+              <ListItemText
+                primary={primaryField === "word" ? item.word : item.translation}
+                secondary={
+                  revealed
+                    ? primaryField === "word"
+                      ? item.translation
+                      : item.word
+                    : undefined
+                }
+              />
+              <IconButton onClick={() => toggleReveal(item.id)}>
+                {revealed ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth>
+        <DialogTitle>{t("add")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label={t("wordLabel")}
+              label={t("word")}
               value={word}
               onChange={(e) => setWord(e.target.value)}
             />
             <TextField
-              label={t("translationLabel")}
+              label={t("translation")}
               value={translation}
               onChange={(e) => setTranslation(e.target.value)}
             />
             <TextField
-              label={t("noteLabel")}
+              label={t("note")}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               multiline
-              minRows={3}
+              rows={3}
             />
-            {createError && <Alert severity="error">{createError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>{t("cancel")}</Button>
-          <Button
-            onClick={() => void addItem()}
-            variant="contained"
-            disabled={isCreating}
-          >
-            {isCreating ? t("loading") : t("save")}
+          <Button onClick={addItem} disabled={isCreating} variant="contained">
+            {t("save")}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit dialog */}
-      <Dialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle sx={{ color: "text.primary" }}>{t("edit")}</DialogTitle>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth>
+        <DialogTitle>{t("edit")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label={t("wordLabel")}
+              label={t("word")}
               value={editWord}
               onChange={(e) => setEditWord(e.target.value)}
             />
             <TextField
-              label={t("translationLabel")}
+              label={t("translation")}
               value={editTranslation}
               onChange={(e) => setEditTranslation(e.target.value)}
             />
             <TextField
-              label={t("noteLabel")}
+              label={t("note")}
               value={editNote}
               onChange={(e) => setEditNote(e.target.value)}
               multiline
-              minRows={3}
+              rows={3}
             />
-            {editError && <Alert severity="error">{editError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={isSavingEdit}>
-            {t("cancel")}
-          </Button>
+          <Button onClick={() => setEditOpen(false)}>{t("cancel")}</Button>
           <Button
-            onClick={() => void saveEdit()}
-            variant="contained"
+            onClick={saveEdit}
             disabled={isSavingEdit}
+            variant="contained"
           >
-            {isSavingEdit ? t("loading") : t("save")}
+            {t("save")}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
-        open={Boolean(toast)}
-        autoHideDuration={1500}
+        open={!!toast}
         onClose={() => setToast(null)}
-        message={toast ?? ""}
-      />
+        autoHideDuration={3000}
+      >
+        <Alert severity="info">{toast}</Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -101,6 +101,16 @@ class VocabularyModel extends Model<
   declare word: string;
   declare translation: string;
   declare note: string | null;
+  declare language: string | null;
+  declare lastReviewedAt: Date | null;
+  declare nextReviewAt: Date | null;
+  declare easeFactor: number | null;
+  declare intervalDays: number | null;
+  declare repetition: number | null;
+  declare correctStreak: number | null;
+  declare totalReviews: number | null;
+  declare totalCorrect: number | null;
+  declare lastResult: boolean | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -279,6 +289,16 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
       },
       translation: { type: DataTypes.STRING(400), allowNull: false },
       note: { type: DataTypes.TEXT, allowNull: true },
+      language: { type: DataTypes.STRING(16), allowNull: true, defaultValue: null },
+      lastReviewedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
+      nextReviewAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
+      easeFactor: { type: DataTypes.FLOAT, allowNull: true, defaultValue: 2.5 },
+      intervalDays: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+      repetition: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+      correctStreak: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+      totalReviews: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+      totalCorrect: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+      lastResult: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: null },
       createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
       updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     },

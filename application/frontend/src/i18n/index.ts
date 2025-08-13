@@ -10,7 +10,7 @@ let current = "en";
 const strings: Record<string, Record<string, string>> = {
   en: {
     appTitle: "LinguaText",
-    helloTitle: "Study English by Text",
+    helloTitle: "Study Language by Text",
     environmentTWA: "Welcome to the app!",
     andHelloName: "and hello, {name}!",
     folders: "Folders",
@@ -65,7 +65,7 @@ const strings: Record<string, Record<string, string>> = {
   },
   uz: {
     appTitle: "LinguaText",
-    helloTitle: "Matn orqali ingliz tilini o'rganing",
+    helloTitle: "Matn orqali tilni o'rganing",
     environmentTWA: "Ilovaga xush kelibsiz!",
     andHelloName: "salom, {name}!",
     folders: "Jildlar",

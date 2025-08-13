@@ -19,7 +19,23 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
       const items = await fastify.models.Vocabulary.findAll({
         where: { userId },
         order: [['createdAt', 'DESC']],
-        attributes: ['id', 'word', 'translation', 'note', 'createdAt'],
+        attributes: [
+          'id',
+          'word',
+          'translation',
+          'note',
+          'language',
+          'lastReviewedAt',
+          'nextReviewAt',
+          'easeFactor',
+          'intervalDays',
+          'repetition',
+          'correctStreak',
+          'totalReviews',
+          'totalCorrect',
+          'lastResult',
+          'createdAt',
+        ],
       });
       return reply.send(items);
     });
@@ -28,21 +44,34 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post(base, async (request, reply) => {
       const userId = getUserId(request);
       if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
-      const body = request.body as Partial<{ word: string; translation: string; note?: string }>;
+      const body = request.body as Partial<{
+        word: string;
+        translation: string;
+        note?: string;
+        language?: string;
+      }>;
       const word = (body?.word ?? '').toString().trim();
       const translation = (body?.translation ?? '').toString().trim();
       const note = body?.note ? String(body.note) : null;
+      const language = body?.language ? String(body.language).slice(0, 16) : null;
       if (!word || !translation)
         return reply.code(400).send({ error: 'word and translation are required' });
       if (word.length > 200) return reply.code(400).send({ error: 'word too long' });
       if (translation.length > 400) return reply.code(400).send({ error: 'translation too long' });
 
-      const created = await fastify.models.Vocabulary.create({ userId, word, translation, note });
+      const created = await fastify.models.Vocabulary.create({
+        userId,
+        word,
+        translation,
+        note,
+        language,
+      });
       return reply.code(201).send({
         id: created.id,
         word: created.word,
         translation: created.translation,
         note: created.note,
+        language: (created as any).language ?? null,
       });
     });
 
@@ -57,6 +86,7 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
         word?: string;
         translation?: string;
         note?: string | null;
+        language?: string | null;
       }>;
       const updates: any = {};
       if (body.word !== undefined) {
@@ -74,6 +104,9 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
       if (body.note !== undefined) {
         updates.note = body.note === null ? null : String(body.note);
       }
+      if (body.language !== undefined) {
+        updates.language = body.language === null ? null : String(body.language).slice(0, 16);
+      }
 
       if (Object.keys(updates).length === 0) {
         return reply.code(400).send({ error: 'No fields to update' });
@@ -88,6 +121,7 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
         word: (item as any).word,
         translation: (item as any).translation,
         note: (item as any).note,
+        language: (item as any).language ?? null,
       });
     });
 
