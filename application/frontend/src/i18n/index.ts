@@ -1,542 +1,158 @@
-export type Messages = Record<string, string>;
+import { useEffect, useState } from "react";
 
-const uz: Messages = {
-  appTitle: "LinguaText",
-  folders: "Jildlar",
-  yourFolders: "Jildlaringiz",
-  newFolder: "Yangi jild",
-  newFolderPlaceholder: "Jild nomi",
-  createIn: "Yaratiladigan joy: {place}",
-  root: "Ildiz",
-  back: "Orqaga",
-  loadingFolders: "Jildlar yuklanmoqda…",
-  noFoldersYet: "Hozircha jildlar yo‘q",
-  nameLabel: "Nomi",
-  nameHelper: "1–100 ta belgi",
-  nameExists: "Bunday nom allaqachon mavjud",
-  cancel: "Bekor qilish",
-  create: "Yaratish",
-  folderCreated: "Jild yaratildi",
-  unauthorized: "Ruxsat yo‘q",
-  loginWithTelegram: "Telegram orqali kirish",
-  loggingIn: "Kirish…",
-  loggedInAs: "Kirish holati:",
-  helloTitle: "Assalomu alaykum, Til o‘rganish ilovasi",
-  environmentTWA: "Muhit: Telegram WebApp ✅",
-  andHelloName: "— Salom, {name}!",
-  errorLoadFolders: "Jildlarni yuklab bo‘lmadi",
-  errorCreateFolder: "Jild yaratishda xatolik",
-  // Texts
-  addText: "Matn qo‘shish",
-  titleLabel: "Sarlavha",
-  uzRawLabel: "Matn",
-  enRawLabel: "Matn",
-  createText: "Matnni yaratish",
-  textCreated: "Matn yaratildi",
-  prev: "Oldingi",
-  next: "Keyingi",
-  ofTotal: "{i} / {n}",
-  // Build mode
-  buildTitle: "Gapni tuzing",
-  check: "Tekshirish",
-  correct: "To‘g‘ri!",
-  incorrect: "Noto‘g‘ri, yana urinib ko‘ring",
-  reset: "Qayta",
-  reveal: "Ko‘rsatish",
-  continue: "Davom etish",
-  correctAnswer: "To‘g‘ri javob:",
-  // Common/missing
-  loading: "Yuklanmoqda…",
-  noSentences: "Gaplar yo‘q",
-  editText: "Matnni tahrirlash",
-  save: "Saqlash",
-  pleaseFillAllFieldsCorrectly:
-    "Iltimos, barcha maydonlarni to‘g‘ri to‘ldiring",
-  saved: "Saqlandi",
-  textUpdated: "Matn yangilandi",
-  folderRenamed: "Jild nomi o‘zgartirildi",
-  delete: "O‘chirish",
-  rename: "Nomini o‘zgartirish",
-  edit: "Tahrirlash",
-  confirmDeleteFolder: "Ushbu jild va uning tarkibini o‘chirilsinmi?",
-  confirmDeleteText: "Ushbu matn o‘chirilsinmi?",
-  texts: "Matnlar",
-  noTextsYet: "Bu jilda hali matn yo‘q",
-  failed: "Xatolik",
-  failedOpenEditor: "Muharrirni ochib bo‘lmadi",
-  tapWordsBelow: "Quyidagi so‘zlarni bosing",
-  // Vocabulary
-  vocabulary: "Lug‘at",
-  addToVocabulary: "Lug‘atga qo‘shish",
-  wordLabel: "So‘z",
-  translationLabel: "Tarjima",
-  noteLabel: "Izoh",
-  // Vocabulary study direction
-  wordFirst: "Avval so‘z",
-  translationFirst: "Avval tarjima",
-  // Zoom
-  zoomIn: "Kattalashtirish",
-  zoomOut: "Kichiklashtirish",
-  resetZoom: "Masshtabni tiklash",
-};
-
-const en: Messages = {
-  appTitle: "LinguaText",
-  folders: "Folders",
-  yourFolders: "Your folders",
-  newFolder: "New Folder",
-  newFolderPlaceholder: "Folder name",
-  createIn: "Create in: {place}",
-  root: "Root",
-  back: "Back",
-  loadingFolders: "Loading folders…",
-  noFoldersYet: "No folders yet",
-  nameLabel: "Name",
-  nameHelper: "1–100 characters",
-  nameExists: "Name already exists",
-  cancel: "Cancel",
-  create: "Create",
-  folderCreated: "Folder created",
-  unauthorized: "Unauthorized",
-  loginWithTelegram: "Login with Telegram",
-  loggingIn: "Logging in…",
-  loggedInAs: "Logged in as:",
-  helloTitle: "Hello, Language Learning App",
-  environmentTWA: "Environment: Telegram WebApp ✅",
-  andHelloName: "— Hello, {name}!",
-  errorLoadFolders: "Failed to load folders",
-  errorCreateFolder: "Failed to create folder",
-  // Texts
-  addText: "Add Text",
-  titleLabel: "Title",
-  uzRawLabel: "Text",
-  enRawLabel: "Text",
-  createText: "Text",
-  textCreated: "Text created",
-  prev: "Prev",
-  next: "Next",
-  ofTotal: "{i} / {n}",
-  // Build mode
-  buildTitle: "Build the sentence",
-  check: "Check",
-  correct: "Correct!",
-  incorrect: "Incorrect, try again",
-  reset: "Reset",
-  reveal: "Reveal",
-  continue: "Continue",
-  correctAnswer: "Correct answer:",
-  // Common/missing
-  loading: "Loading…",
-  noSentences: "No sentences",
-  editText: "Edit text",
-  save: "Save",
-  pleaseFillAllFieldsCorrectly: "Please fill all fields correctly",
-  saved: "Saved",
-  textUpdated: "Text updated",
-  folderRenamed: "Folder renamed",
-  delete: "Delete",
-  rename: "Rename",
-  edit: "Edit",
-  confirmDeleteFolder: "Delete this folder and its contents?",
-  confirmDeleteText: "Delete this text?",
-  texts: "Texts",
-  noTextsYet: "No texts in this folder yet",
-  failed: "Failed",
-  failedOpenEditor: "Failed to open editor",
-  tapWordsBelow: "Tap words below",
-  // Vocabulary
-  vocabulary: "Vocabulary",
-  addToVocabulary: "Add to vocabulary",
-  wordLabel: "Word",
-  translationLabel: "Translation",
-  noteLabel: "Note",
-  // Vocabulary study direction
-  wordFirst: "Word first",
-  translationFirst: "Translation first",
-  // Zoom
-  zoomIn: "Zoom in",
-  zoomOut: "Zoom out",
-  resetZoom: "Reset zoom",
-};
-
-const ru: Messages = {
-  appTitle: "LinguaText",
-  folders: "Папки",
-  yourFolders: "Ваши папки",
-  newFolder: "Новая папка",
-  newFolderPlaceholder: "Название папки",
-  createIn: "Создать в: {place}",
-  root: "Корень",
-  back: "Назад",
-  loadingFolders: "Загрузка папок…",
-  noFoldersYet: "Папок пока нет",
-  nameLabel: "Название",
-  nameHelper: "1–100 символов",
-  nameExists: "Такое имя уже существует",
-  cancel: "Отмена",
-  create: "Создать",
-  folderCreated: "Папка создана",
-  unauthorized: "Нет доступа",
-  loginWithTelegram: "Войти через Telegram",
-  loggingIn: "Входим…",
-  loggedInAs: "Вошли как:",
-  helloTitle: "Здравствуйте, приложение для изучения языков",
-  environmentTWA: "Среда: Telegram WebApp ✅",
-  andHelloName: "— Привет, {name}!",
-  errorLoadFolders: "Не удалось загрузить папки",
-  errorCreateFolder: "Не удалось создать папку",
-  addText: "Добавить текст",
-  titleLabel: "Заголовок",
-  uzRawLabel: "Текст",
-  enRawLabel: "Текст",
-  createText: "Создать текст",
-  textCreated: "Текст создан",
-  prev: "Назад",
-  next: "Далее",
-  ofTotal: "{i} / {n}",
-  buildTitle: "Соберите предложение",
-  check: "Проверить",
-  correct: "Верно!",
-  incorrect: "Неверно, попробуйте снова",
-  reset: "Сброс",
-  reveal: "Показать",
-  continue: "Продолжить",
-  correctAnswer: "Правильный ответ:",
-  // Common/missing
-  loading: "Загрузка…",
-  noSentences: "Нет предложений",
-  editText: "Редактировать текст",
-  save: "Сохранить",
-  pleaseFillAllFieldsCorrectly: "Заполните все поля корректно",
-  saved: "Сохранено",
-  textUpdated: "Текст обновлён",
-  folderRenamed: "Папка переименована",
-  delete: "Удалить",
-  rename: "Переименовать",
-  edit: "Редактировать",
-  confirmDeleteFolder: "Удалить эту папку и её содержимое?",
-  confirmDeleteText: "Удалить этот текст?",
-  texts: "Тексты",
-  noTextsYet: "В этой папке пока нет текстов",
-  failed: "Ошибка",
-  failedOpenEditor: "Не удалось открыть редактор",
-  tapWordsBelow: "Нажмите на слова ниже",
-  vocabulary: "Словарь",
-  addToVocabulary: "Добавить в словарь",
-  wordLabel: "Слово",
-  translationLabel: "Перевод",
-  noteLabel: "Заметка",
-  // Vocabulary study direction
-  wordFirst: "Сначала слово",
-  translationFirst: "Сначала перевод",
-  // Zoom
-  zoomIn: "Увеличить",
-  zoomOut: "Уменьшить",
-  resetZoom: "Сброс масштаба",
-};
-
-const ko: Messages = {
-  appTitle: "LinguaText",
-  folders: "폴더",
-  yourFolders: "내 폴더",
-  newFolder: "새 폴더",
-  newFolderPlaceholder: "폴더 이름",
-  createIn: "생성 위치: {place}",
-  root: "루트",
-  back: "뒤로",
-  loadingFolders: "폴더 로딩 중…",
-  noFoldersYet: "아직 폴더가 없습니다",
-  nameLabel: "이름",
-  nameHelper: "1–100자",
-  nameExists: "이미 존재하는 이름입니다",
-  cancel: "취소",
-  create: "생성",
-  folderCreated: "폴더가 생성되었습니다",
-  unauthorized: "권한 없음",
-  loginWithTelegram: "Telegram으로 로그인",
-  loggingIn: "로그인 중…",
-  loggedInAs: "로그인됨:",
-  helloTitle: "안녕하세요, 언어 학습 앱입니다",
-  environmentTWA: "환경: Telegram WebApp ✅",
-  andHelloName: "— 안녕하세요, {name}님!",
-  errorLoadFolders: "폴더를 불러오지 못했습니다",
-  errorCreateFolder: "폴더 생성에 실패했습니다",
-  addText: "텍스트 추가",
-  titleLabel: "제목",
-  uzRawLabel: "우즈베크어 텍스트",
-  enRawLabel: "영어 텍스트",
-  createText: "텍스트 만들기",
-  textCreated: "텍스트가 생성되었습니다",
-  prev: "이전",
-  next: "다음",
-  ofTotal: "{i} / {n}",
-  buildTitle: "문장을 구성하세요",
-  check: "확인",
-  correct: "정답!",
-  incorrect: "오답입니다. 다시 시도하세요",
-  reset: "초기화",
-  reveal: "정답 보기",
-  continue: "계속",
-  correctAnswer: "정답:",
-  // Common/missing
-  loading: "로딩 중…",
-  noSentences: "문장이 없습니다",
-  editText: "텍스트 편집",
-  save: "저장",
-  pleaseFillAllFieldsCorrectly: "모든 필드를 올바르게 입력하세요",
-  saved: "저장됨",
-  textUpdated: "텍스트가 업데이트되었습니다",
-  folderRenamed: "폴더 이름이 변경되었습니다",
-  delete: "삭제",
-  rename: "이름 변경",
-  edit: "편집",
-  confirmDeleteFolder: "이 폴더와 내용을 삭제하시겠습니까?",
-  confirmDeleteText: "이 텍스트를 삭제하시겠습니까?",
-  texts: "텍스트",
-  noTextsYet: "이 폴더에는 아직 텍스트가 없습니다",
-  failed: "실패함",
-  failedOpenEditor: "편집기를 열지 못했습니다",
-  tapWordsBelow: "아래의 단어를 누르세요",
-  vocabulary: "어휘",
-  addToVocabulary: "어휘에 추가",
-  wordLabel: "단어",
-  translationLabel: "번역",
-  noteLabel: "메모",
-  // Vocabulary study direction
-  wordFirst: "단어 먼저",
-  translationFirst: "번역 먼저",
-  // Zoom
-  zoomIn: "확대",
-  zoomOut: "축소",
-  resetZoom: "배율 초기화",
-};
-
-const tr: Messages = {
-  appTitle: "LinguaText",
-  folders: "Klasörler",
-  yourFolders: "Klasörlerin",
-  newFolder: "Yeni Klasör",
-  newFolderPlaceholder: "Klasör adı",
-  createIn: "Oluşturulacak yer: {place}",
-  root: "Kök",
-  back: "Geri",
-  loadingFolders: "Klasörler yükleniyor…",
-  noFoldersYet: "Henüz klasör yok",
-  nameLabel: "Adı",
-  nameHelper: "1–100 karakter",
-  nameExists: "Bu ad zaten mevcut",
-  cancel: "İptal",
-  create: "Oluştur",
-  folderCreated: "Klasör oluşturuldu",
-  unauthorized: "Yetkisiz",
-  loginWithTelegram: "Telegram ile giriş yap",
-  loggingIn: "Giriş yapılıyor…",
-  loggedInAs: "Giriş yapan:",
-  helloTitle: "Merhaba, Diller Öğrenme Uygulaması",
-  environmentTWA: "Ortam: Telegram WebApp ✅",
-  andHelloName: "— Merhaba, {name}!",
-  errorLoadFolders: "Klasörler yüklenemedi",
-  errorCreateFolder: "Klasör oluşturulamadı",
-  addText: "Metin Ekle",
-  titleLabel: "Başlık",
-  uzRawLabel: "Metin",
-  enRawLabel: "Metin",
-  createText: "Metin Oluştur",
-  textCreated: "Metin oluşturuldu",
-  prev: "Önceki",
-  next: "Sonraki",
-  ofTotal: "{i} / {n}",
-  buildTitle: "Cümleyi oluştur",
-  check: "Kontrol et",
-  correct: "Doğru!",
-  incorrect: "Yanlış, tekrar deneyin",
-  reset: "Sıfırla",
-  reveal: "Göster",
-  continue: "Devam et",
-  correctAnswer: "Doğru cevap:",
-  // Common/missing
-  loading: "Yükleniyor…",
-  noSentences: "Cümle yok",
-  editText: "Metni düzenle",
-  save: "Kaydet",
-  pleaseFillAllFieldsCorrectly: "Lütfen tüm alanları doğru doldurun",
-  saved: "Kaydedildi",
-  textUpdated: "Metin güncellendi",
-  folderRenamed: "Klasör yeniden adlandırıldı",
-  delete: "Sil",
-  rename: "Yeniden adlandır",
-  edit: "Düzenle",
-  confirmDeleteFolder: "Bu klasörü ve içeriğini silmek istiyor musunuz?",
-  confirmDeleteText: "Bu metni silmek istiyor musunuz?",
-  texts: "Metinler",
-  noTextsYet: "Bu klasörde henüz metin yok",
-  failed: "Başarısız",
-  failedOpenEditor: "Düzenleyici açılamadı",
-  tapWordsBelow: "Aşağıdaki kelimelere dokunun",
-  vocabulary: "Sözlük",
-  addToVocabulary: "Sözlüğe ekle",
-  wordLabel: "Kelime",
-  translationLabel: "Çeviri",
-  noteLabel: "Not",
-  // Vocabulary study direction
-  wordFirst: "Önce kelime",
-  translationFirst: "Önce çeviri",
-  // Zoom
-  zoomIn: "Yakınlaştır",
-  zoomOut: "Uzaklaştır",
-  resetZoom: "Yakınlaştırmayı sıfırla",
-};
-
-const de: Messages = {
-  appTitle: "LinguaText",
-  folders: "Ordner",
-  yourFolders: "Deine Ordner",
-  newFolder: "Neuer Ordner",
-  newFolderPlaceholder: "Ordnername",
-  createIn: "Erstellen in: {place}",
-  root: "Wurzel",
-  back: "Zurück",
-  loadingFolders: "Ordner werden geladen…",
-  noFoldersYet: "Noch keine Ordner",
-  nameLabel: "Name",
-  nameHelper: "1–100 Zeichen",
-  nameExists: "Name existiert bereits",
-  cancel: "Abbrechen",
-  create: "Erstellen",
-  folderCreated: "Ordner erstellt",
-  unauthorized: "Nicht autorisiert",
-  loginWithTelegram: "Mit Telegram anmelden",
-  loggingIn: "Anmeldung…",
-  loggedInAs: "Angemeldet als:",
-  helloTitle: "Hallo, Sprachlern-App",
-  environmentTWA: "Umgebung: Telegram WebApp ✅",
-  andHelloName: "— Hallo, {name}!",
-  errorLoadFolders: "Ordner konnten nicht geladen werden",
-  errorCreateFolder: "Ordner konnte nicht erstellt werden",
-  // Texts
-  addText: "Text hinzufügen",
-  titleLabel: "Titel",
-  uzRawLabel: "Text",
-  enRawLabel: "Text",
-  createText: "Text erstellen",
-  textCreated: "Text erstellt",
-  prev: "Zurück",
-  next: "Weiter",
-  ofTotal: "{i} / {n}",
-  // Build mode
-  buildTitle: "Baue den Satz",
-  check: "Prüfen",
-  correct: "Richtig!",
-  incorrect: "Falsch, versuch es nochmal",
-  reset: "Zurücksetzen",
-  reveal: "Anzeigen",
-  continue: "Weiter",
-  correctAnswer: "Richtige Antwort:",
-  // Common/missing
-  loading: "Wird geladen…",
-  noSentences: "Keine Sätze",
-  editText: "Text bearbeiten",
-  save: "Speichern",
-  pleaseFillAllFieldsCorrectly: "Bitte alle Felder korrekt ausfüllen",
-  saved: "Gespeichert",
-  textUpdated: "Text aktualisiert",
-  folderRenamed: "Ordner umbenannt",
-  delete: "Löschen",
-  rename: "Umbenennen",
-  edit: "Bearbeiten",
-  confirmDeleteFolder: "Diesen Ordner und Inhalte löschen?",
-  confirmDeleteText: "Diesen Text löschen?",
-  texts: "Texte",
-  noTextsYet: "In diesem Ordner noch keine Texte",
-  failed: "Fehlgeschlagen",
-  failedOpenEditor: "Editor konnte nicht geöffnet werden",
-  tapWordsBelow: "Tippe auf die Wörter unten",
-  // Vocabulary
-  vocabulary: "Vokabular",
-  addToVocabulary: "Zum Vokabular hinzufügen",
-  wordLabel: "Wort",
-  translationLabel: "Übersetzung",
-  noteLabel: "Notiz",
-  // Vocabulary study direction
-  wordFirst: "Zuerst das Wort",
-  translationFirst: "Zuerst die Übersetzung",
-  // Zoom
-  zoomIn: "Vergrößern",
-  zoomOut: "Verkleinern",
-  resetZoom: "Zoom zurücksetzen",
-};
-
-const dict: Record<string, Messages> = { uz, en, ru, ko, tr, de };
-
-export const locales: Array<{ code: string; label: string }> = [
-  { code: "uz", label: "O‘zbekcha" },
-  { code: "ru", label: "Русский" },
+export const locales = [
   { code: "en", label: "English" },
-  { code: "de", label: "Deutsch" },
-  { code: "ko", label: "한국어" },
-  { code: "tr", label: "Türkçe" },
+  { code: "uz", label: "O'zbek" },
 ];
 
-const saved = (() => {
-  try {
-    return localStorage.getItem("locale") || undefined;
-  } catch {
-    return undefined;
+let current = "en";
+
+const strings: Record<string, Record<string, string>> = {
+  en: {
+    appTitle: "LinguaText",
+    helloTitle: "Study English by Text",
+    environmentTWA: "Welcome to the app!",
+    andHelloName: "and hello, {name}!",
+    folders: "Folders",
+    texts: "Texts",
+    vocabulary: "Vocabulary",
+    newFolder: "New folder",
+    createIn: "Create in {place}",
+    root: "Root",
+    nameLabel: "Name",
+    newFolderPlaceholder: "My folder",
+    nameHelper: "1-100 characters",
+    cancel: "Cancel",
+    create: "Create",
+    unauthorized: "Please log in",
+    errorLoadFolders: "Failed to load folders",
+    folderCreated: "Folder created",
+    nameExists: "Name already exists",
+    rename: "Rename",
+    delete: "Delete",
+    confirmDeleteFolder: "Delete this folder (and everything inside)?",
+    confirmDeleteText: "Delete this text?",
+    failed: "Failed",
+    addText: "Add text",
+    titleLabel: "Title",
+    uzRawLabel: "Uzbek text",
+    enRawLabel: "English text",
+    pleaseFillAllFieldsCorrectly: "Please fill all fields correctly",
+    createText: "Create text",
+    textCreated: "Text created",
+    failedOpenEditor: "Failed to open editor",
+    textUpdated: "Text updated",
+    library: "Library",
+    makeGlobal: "Make global",
+    unpublish: "Unpublish",
+    published: "Published",
+    unpublished: "Unpublished",
+    import: "Import",
+    importFolder: "Import folder",
+    namePrefix: "Name prefix",
+    imported: "Imported",
+    back: "Back",
+    loading: "Loading...",
+    addToVocabulary: "Add to vocabulary",
+    wordLabel: "Word",
+    translationLabel: "Translation",
+    noteLabel: "Note",
+    save: "Save",
+    noSentences: "No items found",
+    translationFirst: "Translation first",
+    wordFirst: "Word first",
+    search: "Search",
+  },
+  uz: {
+    appTitle: "LinguaText",
+    helloTitle: "Matn orqali ingliz tilini o'rganing",
+    environmentTWA: "Ilovaga xush kelibsiz!",
+    andHelloName: "salom, {name}!",
+    folders: "Jildlar",
+    texts: "Matnlar",
+    vocabulary: "Lug'at",
+    newFolder: "Yangi jild",
+    createIn: "Qayerda yaratish: {place}",
+    root: "Ildiz",
+    nameLabel: "Nomi",
+    newFolderPlaceholder: "Mening jildim",
+    nameHelper: "1-100 ta belgi",
+    cancel: "Bekor qilish",
+    create: "Yaratish",
+    unauthorized: "Iltimos, tizimga kiring",
+    errorLoadFolders: "Jildlarni yuklab bo'lmadi",
+    folderCreated: "Jild yaratildi",
+    nameExists: "Bunday nom allaqachon mavjud",
+    rename: "Nomini o'zgartirish",
+    delete: "O'chirish",
+    confirmDeleteFolder: "Bu jildni (ichidagini ham) o'chiraymi?",
+    confirmDeleteText: "Bu matnni o'chiraymi?",
+    failed: "Xatolik",
+    addText: "Matn qo'shish",
+    titleLabel: "Sarlavha",
+    uzRawLabel: "O'zbekcha matn",
+    enRawLabel: "Inglizcha matn",
+    pleaseFillAllFieldsCorrectly: "Maydonlarni to'g'ri to'ldiring",
+    createText: "Matn yaratish",
+    textCreated: "Matn yaratildi",
+    failedOpenEditor: "Tahrirlash oynasini ochib bo'lmadi",
+    textUpdated: "Yangilandi",
+    library: "Kutubxona",
+    makeGlobal: "Ommaviy qilish",
+    unpublish: "Ommaviydan olish",
+    published: "Ommaviy qilindi",
+    unpublished: "Ommaviydan olindi",
+    import: "Import",
+    importFolder: "Jildni import qilish",
+    namePrefix: "Nom oldidan qo'shimcha",
+    imported: "Import qilindi",
+    back: "Orqaga",
+    loading: "Yuklanmoqda...",
+    addToVocabulary: "Lug'atga qo'shish",
+    wordLabel: "So'z",
+    translationLabel: "Tarjima",
+    noteLabel: "Izoh",
+    save: "Saqlash",
+    noSentences: "Hali hech narsa yo'q",
+    translationFirst: "Avval tarjima",
+    wordFirst: "Avval so'z",
+    search: "Qidirish",
+  },
+};
+
+export function t(key: string, params?: Record<string, string | number>) {
+  const dict = strings[current] || strings.en;
+  let value = dict[key] || key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      value = value.replace(`{${k}}`, String(v));
+    }
   }
-})();
+  return value;
+}
 
-let currentLocale = saved && dict[saved] ? saved : "uz";
-
-export function setLocale(locale: string) {
-  currentLocale = dict[locale] ? locale : "en";
+export function setLocale(code: string) {
+  current = strings[code] ? code : "en";
   try {
-    localStorage.setItem("locale", currentLocale);
+    localStorage.setItem("locale", current);
   } catch {}
-  return currentLocale;
+}
+
+export function ensureInitialLocale() {
+  try {
+    const saved = localStorage.getItem("locale");
+    if (saved && strings[saved]) current = saved;
+  } catch {}
+}
+
+export function useLocale() {
+  const [loc, setLoc] = useState(current);
+  useEffect(() => {
+    setLoc(current);
+  }, []);
+  return loc;
 }
 
 export function getLocale() {
-  return currentLocale;
-}
-
-export function ensureInitialLocale(): string {
-  // If user has a saved locale, keep it
-  if (saved && dict[saved]) return saved;
-
-  // Try Telegram WebApp language code
-  const tgLang = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user
-    ?.language_code as string | undefined;
-
-  const browserLang =
-    navigator.language || (navigator as any).userLanguage || "en";
-
-  const chosen = pickSupportedLocale(tgLang || browserLang);
-  return setLocale(chosen);
-}
-
-function pickSupportedLocale(lang: string | undefined): string {
-  if (!lang) return "en";
-  const l = lang.toLowerCase();
-  if (l.startsWith("uz")) return "uz";
-  if (l.startsWith("ru")) return "ru";
-  if (l.startsWith("en")) return "en";
-  if (l.startsWith("de")) return "de";
-  if (l.startsWith("ko") || l.startsWith("kr")) return "ko";
-  if (l.startsWith("tr")) return "tr";
-  return "en";
-}
-
-export function t(
-  key: keyof Messages,
-  vars?: Record<string, string | number>
-): string {
-  const msg =
-    (dict[currentLocale] && dict[currentLocale][key]) ||
-    dict.en[key] ||
-    String(key);
-  if (!vars) return msg;
-  return Object.entries(vars).reduce(
-    (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
-    msg
-  );
+  return current;
 }

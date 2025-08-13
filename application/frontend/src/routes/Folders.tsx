@@ -38,6 +38,7 @@ interface FolderDTO {
   parentId?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  isGlobal?: boolean;
 }
 
 interface TextListItem {
@@ -280,13 +281,13 @@ export default function Folders() {
     type: "folder" | "text"
   ) => {
     setMenuAnchor(event.currentTarget);
-    setMenuTarget(item);
+    setMenuTarget(item as any);
     setMenuType(type);
   };
 
   const handleMenuClose = () => {
     setMenuAnchor(null);
-    setMenuTarget(null);
+    setMenuTarget(null as any);
     setMenuType(null);
   };
 
@@ -369,7 +370,7 @@ export default function Folders() {
             }}
           >
             <ListItemText
-              primary={f.name}
+              primary={f.name + (f.isGlobal ? "  🌍" : "")}
               primaryTypographyProps={{
                 sx: { color: "text.primary", fontWeight: 500 },
               }}
@@ -551,6 +552,13 @@ export default function Folders() {
           sx={{ mr: 1 }}
         >
           {t("vocabulary")}
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => navigate("/library")}
+          sx={{ mr: 1 }}
+        >
+          {t("library")}
         </Button>
         <Button
           variant="contained"
@@ -768,9 +776,35 @@ export default function Folders() {
             {t("rename")}
           </MenuItem>,
           <MenuItem
+            key="publish"
+            onClick={async () => {
+              try {
+                const f = menuTarget as FolderDTO;
+                await apiPost(
+                  `/api/folders/${f.id}/${
+                    f.isGlobal ? "unpublish" : "publish"
+                  }`,
+                  {}
+                );
+                mainFolderCache.clear();
+                clearFolderCache();
+                await loadFolders();
+                setToast(f.isGlobal ? t("unpublished") : t("published"));
+              } catch (e) {
+                alert(e instanceof Error ? e.message : t("failed"));
+              } finally {
+                handleMenuClose();
+              }
+            }}
+          >
+            {(menuTarget as FolderDTO | null)?.isGlobal
+              ? t("unpublish")
+              : t("makeGlobal")}
+          </MenuItem>,
+          <MenuItem
             key="delete"
             onClick={() => {
-              handleDeleteFolder(menuTarget!.id);
+              handleDeleteFolder((menuTarget as any)!.id);
               handleMenuClose();
             }}
             sx={{
@@ -789,8 +823,10 @@ export default function Folders() {
             key="edit"
             onClick={async () => {
               try {
-                const full = await apiGet<any>(`/api/texts/${menuTarget!.id}`);
-                setEditTextId(menuTarget!.id);
+                const full = await apiGet<any>(
+                  `/api/texts/${(menuTarget as any)!.id}`
+                );
+                setEditTextId((menuTarget as any)!.id);
                 setEditTitle(full.title || "");
                 setEditUzRaw(full.uzRaw || "");
                 setEditEnRaw(full.enRaw || "");
@@ -808,7 +844,7 @@ export default function Folders() {
           <MenuItem
             key="delete"
             onClick={() => {
-              handleDeleteText(menuTarget!.id);
+              handleDeleteText((menuTarget as any)!.id);
               handleMenuClose();
             }}
             sx={{

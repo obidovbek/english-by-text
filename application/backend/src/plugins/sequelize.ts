@@ -46,6 +46,7 @@ class FolderModel extends Model<
   declare userId: ForeignKey<UserModel['id']>;
   declare name: string;
   declare parentId: number | null;
+  declare isGlobal: CreationOptional<boolean>;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -196,6 +197,11 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
       parentId: {
         type: DataTypes.BIGINT,
         allowNull: true,
+      },
+      isGlobal: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       createdAt: {
         type: DataTypes.DATE,
