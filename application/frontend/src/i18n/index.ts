@@ -71,6 +71,13 @@ const uz: Messages = {
   wordLabel: "So‘z",
   translationLabel: "Tarjima",
   noteLabel: "Izoh",
+  // Vocabulary study direction
+  wordFirst: "Avval so‘z",
+  translationFirst: "Avval tarjima",
+  // Zoom
+  zoomIn: "Kattalashtirish",
+  zoomOut: "Kichiklashtirish",
+  resetZoom: "Masshtabni tiklash",
 };
 
 const en: Messages = {
@@ -143,6 +150,13 @@ const en: Messages = {
   wordLabel: "Word",
   translationLabel: "Translation",
   noteLabel: "Note",
+  // Vocabulary study direction
+  wordFirst: "Word first",
+  translationFirst: "Translation first",
+  // Zoom
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
+  resetZoom: "Reset zoom",
 };
 
 const ru: Messages = {
@@ -212,6 +226,13 @@ const ru: Messages = {
   wordLabel: "Слово",
   translationLabel: "Перевод",
   noteLabel: "Заметка",
+  // Vocabulary study direction
+  wordFirst: "Сначала слово",
+  translationFirst: "Сначала перевод",
+  // Zoom
+  zoomIn: "Увеличить",
+  zoomOut: "Уменьшить",
+  resetZoom: "Сброс масштаба",
 };
 
 const ko: Messages = {
@@ -281,6 +302,13 @@ const ko: Messages = {
   wordLabel: "단어",
   translationLabel: "번역",
   noteLabel: "메모",
+  // Vocabulary study direction
+  wordFirst: "단어 먼저",
+  translationFirst: "번역 먼저",
+  // Zoom
+  zoomIn: "확대",
+  zoomOut: "축소",
+  resetZoom: "배율 초기화",
 };
 
 const tr: Messages = {
@@ -350,14 +378,101 @@ const tr: Messages = {
   wordLabel: "Kelime",
   translationLabel: "Çeviri",
   noteLabel: "Not",
+  // Vocabulary study direction
+  wordFirst: "Önce kelime",
+  translationFirst: "Önce çeviri",
+  // Zoom
+  zoomIn: "Yakınlaştır",
+  zoomOut: "Uzaklaştır",
+  resetZoom: "Yakınlaştırmayı sıfırla",
 };
 
-const dict: Record<string, Messages> = { uz, en, ru, ko, tr };
+const de: Messages = {
+  appTitle: "LinguaText",
+  folders: "Ordner",
+  yourFolders: "Deine Ordner",
+  newFolder: "Neuer Ordner",
+  newFolderPlaceholder: "Ordnername",
+  createIn: "Erstellen in: {place}",
+  root: "Wurzel",
+  back: "Zurück",
+  loadingFolders: "Ordner werden geladen…",
+  noFoldersYet: "Noch keine Ordner",
+  nameLabel: "Name",
+  nameHelper: "1–100 Zeichen",
+  nameExists: "Name existiert bereits",
+  cancel: "Abbrechen",
+  create: "Erstellen",
+  folderCreated: "Ordner erstellt",
+  unauthorized: "Nicht autorisiert",
+  loginWithTelegram: "Mit Telegram anmelden",
+  loggingIn: "Anmeldung…",
+  loggedInAs: "Angemeldet als:",
+  helloTitle: "Hallo, Sprachlern-App",
+  environmentTWA: "Umgebung: Telegram WebApp ✅",
+  andHelloName: "— Hallo, {name}!",
+  errorLoadFolders: "Ordner konnten nicht geladen werden",
+  errorCreateFolder: "Ordner konnte nicht erstellt werden",
+  // Texts
+  addText: "Text hinzufügen",
+  titleLabel: "Titel",
+  uzRawLabel: "Text",
+  enRawLabel: "Text",
+  createText: "Text erstellen",
+  textCreated: "Text erstellt",
+  prev: "Zurück",
+  next: "Weiter",
+  ofTotal: "{i} / {n}",
+  // Build mode
+  buildTitle: "Baue den Satz",
+  check: "Prüfen",
+  correct: "Richtig!",
+  incorrect: "Falsch, versuch es nochmal",
+  reset: "Zurücksetzen",
+  reveal: "Anzeigen",
+  continue: "Weiter",
+  correctAnswer: "Richtige Antwort:",
+  // Common/missing
+  loading: "Wird geladen…",
+  noSentences: "Keine Sätze",
+  editText: "Text bearbeiten",
+  save: "Speichern",
+  pleaseFillAllFieldsCorrectly: "Bitte alle Felder korrekt ausfüllen",
+  saved: "Gespeichert",
+  textUpdated: "Text aktualisiert",
+  folderRenamed: "Ordner umbenannt",
+  delete: "Löschen",
+  rename: "Umbenennen",
+  edit: "Bearbeiten",
+  confirmDeleteFolder: "Diesen Ordner und Inhalte löschen?",
+  confirmDeleteText: "Diesen Text löschen?",
+  texts: "Texte",
+  noTextsYet: "In diesem Ordner noch keine Texte",
+  failed: "Fehlgeschlagen",
+  failedOpenEditor: "Editor konnte nicht geöffnet werden",
+  tapWordsBelow: "Tippe auf die Wörter unten",
+  // Vocabulary
+  vocabulary: "Vokabular",
+  addToVocabulary: "Zum Vokabular hinzufügen",
+  wordLabel: "Wort",
+  translationLabel: "Übersetzung",
+  noteLabel: "Notiz",
+  // Vocabulary study direction
+  wordFirst: "Zuerst das Wort",
+  translationFirst: "Zuerst die Übersetzung",
+  // Zoom
+  zoomIn: "Vergrößern",
+  zoomOut: "Verkleinern",
+  resetZoom: "Zoom zurücksetzen",
+};
+
+const dict: Record<string, Messages> = { uz, en, ru, ko, tr, de };
 
 export const locales: Array<{ code: string; label: string }> = [
   { code: "uz", label: "O‘zbekcha" },
   { code: "ru", label: "Русский" },
   { code: "en", label: "English" },
+  { code: "de", label: "Deutsch" },
   { code: "ko", label: "한국어" },
   { code: "tr", label: "Türkçe" },
 ];
@@ -405,6 +520,7 @@ function pickSupportedLocale(lang: string | undefined): string {
   if (l.startsWith("uz")) return "uz";
   if (l.startsWith("ru")) return "ru";
   if (l.startsWith("en")) return "en";
+  if (l.startsWith("de")) return "de";
   if (l.startsWith("ko") || l.startsWith("kr")) return "ko";
   if (l.startsWith("tr")) return "tr";
   return "en";

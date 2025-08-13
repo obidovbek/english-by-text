@@ -34,6 +34,8 @@ class UserModel extends Model<InferAttributes<UserModel>, InferCreationAttribute
   declare phone: string | null;
   declare languageCode: string | null;
   declare photoUrl: string | null;
+  declare lastGreetingMessageId: CreationOptional<number>;
+  declare lastGreetingVariant: CreationOptional<number>;
 }
 
 class FolderModel extends Model<
@@ -157,6 +159,14 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
       },
       photoUrl: {
         type: DataTypes.STRING,
+        allowNull: true,
+      },
+      lastGreetingMessageId: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+      },
+      lastGreetingVariant: {
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
     },

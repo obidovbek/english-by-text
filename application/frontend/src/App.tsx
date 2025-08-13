@@ -47,10 +47,14 @@ function App() {
     if (firstName) setTgFirstName(firstName);
   }, [isTWA]);
 
-  // Auto-login on every app open inside Telegram
+  // Auto-login on every app open inside Telegram (guarded for React StrictMode)
   useEffect(() => {
     if (isTelegram && !user && !isLoading) {
-      login();
+      const onceKey = "twa-login-once";
+      if (!sessionStorage.getItem(onceKey)) {
+        sessionStorage.setItem(onceKey, "1");
+        login();
+      }
     }
   }, [isTelegram, user, isLoading, login]);
 

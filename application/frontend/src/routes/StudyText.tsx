@@ -78,6 +78,18 @@ export default function StudyText() {
   // Toggle for tokens editor
   const [showTokensEditor, setShowTokensEditor] = useState(false);
 
+  // Zoom state (persisted)
+  const [zoom, setZoom] = useState(() => {
+    try {
+      const raw = localStorage.getItem("studyText.zoom");
+      const val = raw ? parseFloat(raw) : 1;
+      const clamped = Math.min(2, Math.max(0.6, isNaN(val) ? 1 : val));
+      return Math.round(clamped * 100) / 100;
+    } catch {
+      return 1;
+    }
+  });
+
   // Load text
   useEffect(() => {
     let cancelled = false;
@@ -273,6 +285,52 @@ export default function StudyText() {
     return () => window.removeEventListener("keydown", onKey);
   }, [total]);
 
+  // Zoom controls: Ctrl/Cmd + Mouse Wheel
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const step = e.deltaY > 0 ? -0.05 : 0.05;
+          const next = Math.min(
+            2,
+            Math.max(0.6, Math.round((z + step) * 100) / 100)
+          );
+          return next;
+        });
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: false } as any);
+    return () => window.removeEventListener("wheel", onWheel as any);
+  }, []);
+
+  // Zoom controls: Keyboard shortcuts (Ctrl/Cmd + '+', '-', '0')
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const accel = e.ctrlKey || e.metaKey;
+      if (!accel) return;
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        setZoom((z) => Math.min(2, Math.round((z + 0.1) * 100) / 100));
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 100) / 100));
+      } else if (e.key === "0") {
+        e.preventDefault();
+        setZoom(1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Persist zoom changes
+  useEffect(() => {
+    try {
+      localStorage.setItem("studyText.zoom", String(zoom));
+    } catch {}
+  }, [zoom]);
+
   async function saveToken(
     tokenId: number | string,
     fields: Partial<{ en: string; pos: string; note: string }>
@@ -312,7 +370,7 @@ export default function StudyText() {
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <IconButton
           onClick={() => navigate(-1)}
-          aria-label="back"
+          aria-label={t("back")}
           sx={{
             bgcolor:
               theme.palette.mode === "dark"
@@ -350,7 +408,15 @@ export default function StudyText() {
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : text && currentSentence ? (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            transform: `scale(${zoom})`,
+            transformOrigin: "top center",
+          }}
+        >
           {/* Uzbek sentence at top center */}
           <Box sx={{ mb: 2, textAlign: "center", px: 1 }}>
             <Typography
@@ -637,6 +703,97 @@ export default function StudyText() {
               )}
             </Box>
           )}
+          {/* Zoom controls */}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ justifyContent: "center", mt: 1 }}
+          >
+            <Button
+              variant="text"
+              onClick={() =>
+                setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 100) / 100))
+              }
+              aria-label={t("zoomOut")}
+              sx={{
+                color: "text.secondary",
+                "&:hover": {
+                  color: "primary.main",
+                  backgroundColor: "action.hover",
+                },
+                minWidth: 36,
+                minHeight: 32,
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                textTransform: "none",
+                borderRadius: 2,
+                "&:active": {
+                  transform: "scale(0.95)",
+                },
+              }}
+            >
+              -
+            </Button>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                alignSelf: "center",
+                minWidth: 44,
+                textAlign: "center",
+              }}
+            >
+              {Math.round(zoom * 100)}%
+            </Typography>
+            <Button
+              variant="text"
+              onClick={() =>
+                setZoom((z) => Math.min(2, Math.round((z + 0.1) * 100) / 100))
+              }
+              aria-label={t("zoomIn")}
+              sx={{
+                color: "text.secondary",
+                "&:hover": {
+                  color: "primary.main",
+                  backgroundColor: "action.hover",
+                },
+                minWidth: 36,
+                minHeight: 32,
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                textTransform: "none",
+                borderRadius: 2,
+                "&:active": {
+                  transform: "scale(0.95)",
+                },
+              }}
+            >
+              +
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => setZoom(1)}
+              aria-label={t("resetZoom")}
+              sx={{
+                color: "text.secondary",
+                "&:hover": {
+                  color: "primary.main",
+                  backgroundColor: "action.hover",
+                },
+                minWidth: 52,
+                minHeight: 32,
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                textTransform: "none",
+                borderRadius: 2,
+                "&:active": {
+                  transform: "scale(0.95)",
+                },
+              }}
+            >
+              100%
+            </Button>
+          </Stack>
         </Box>
       ) : (
         <Typography

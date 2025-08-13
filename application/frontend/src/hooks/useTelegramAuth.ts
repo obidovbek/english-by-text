@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { postJSON } from "../api/client";
+import { getLocale } from "../i18n";
 
 export interface TelegramAuthUser {
   id: number;
@@ -54,6 +55,7 @@ export function useTelegramAuth(): TelegramAuthState {
           : null,
         photoUrl: tgUser.photo_url ? String(tgUser.photo_url) : null,
         phone: null as string | null,
+        uiLocale: getLocale(),
       };
 
       type LoginResponse = { ok: boolean; user: TelegramAuthUser };

@@ -25,6 +25,7 @@ import {
   VisibilityOff,
   Edit,
 } from "@mui/icons-material";
+import { SwapHoriz } from "@mui/icons-material";
 import { t } from "../i18n";
 import { useNavigate } from "react-router-dom";
 import { ArrowBack } from "@mui/icons-material";
@@ -53,6 +54,23 @@ export default function Vocabulary() {
   const [isCreating, setIsCreating] = useState(false);
 
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+
+  // Primary display mode: 'word' or 'translation'
+  const [primaryField, setPrimaryField] = useState<"word" | "translation">(
+    () => {
+      try {
+        const saved = localStorage.getItem("vocabulary.primary");
+        return saved === "translation" ? "translation" : "word";
+      } catch {
+        return "word";
+      }
+    }
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem("vocabulary.primary", primaryField);
+    } catch {}
+  }, [primaryField]);
 
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -202,6 +220,23 @@ export default function Vocabulary() {
           {t("vocabulary")}
         </Typography>
         <Button
+          variant="text"
+          startIcon={<SwapHoriz />}
+          onClick={() =>
+            setPrimaryField((p) => (p === "word" ? "translation" : "word"))
+          }
+          sx={{
+            color: "text.secondary",
+            "&:hover": {
+              color: "primary.main",
+              backgroundColor: "action.hover",
+            },
+            mr: 1,
+          }}
+        >
+          {primaryField === "word" ? t("translationFirst") : t("wordFirst")}
+        </Button>
+        <Button
           variant="contained"
           startIcon={<Add sx={{ color: "primary.contrastText" }} />}
           onClick={() => setDialogOpen(true)}
@@ -226,6 +261,10 @@ export default function Vocabulary() {
         <List>
           {items.map((it) => {
             const isRevealed = revealedIds.has(String(it.id));
+            const primaryText =
+              primaryField === "word" ? it.word : it.translation;
+            const otherText =
+              primaryField === "word" ? it.translation : it.word;
             return (
               <ListItem
                 key={String(it.id)}
@@ -259,10 +298,10 @@ export default function Vocabulary() {
                 }
               >
                 <ListItemText
-                  primary={it.word}
+                  primary={primaryText}
                   secondary={
                     isRevealed
-                      ? [it.translation, it.note].filter(Boolean).join(" — ")
+                      ? [otherText, it.note].filter(Boolean).join(" — ")
                       : undefined
                   }
                   primaryTypographyProps={{
