@@ -11,6 +11,7 @@ RUN npm ci
 # --- Development runtime ---
 FROM base AS development
 ENV NODE_ENV=development
+RUN apt-get update && apt-get install -y --no-install-recommends espeak-ng && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 EXPOSE 4000

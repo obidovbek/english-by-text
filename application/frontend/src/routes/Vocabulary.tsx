@@ -106,6 +106,34 @@ export default function Vocabulary() {
     sessionActiveRef.current = sessionActive;
   }, [sessionActive]);
 
+  // Very lightweight language guesser for TTS routing
+  function detectTtsLanguage(
+    text: string | undefined | null
+  ): string | undefined {
+    const s = (text || "").trim();
+    if (!s) return undefined;
+    // Scripts
+    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(s)) return "ja"; // Hiragana/Katakana
+    if (/[\uAC00-\uD7AF]/.test(s)) return "ko"; // Hangul
+    if (/[\u4E00-\u9FFF]/.test(s)) return "zh"; // CJK Unified Ideographs
+    if (/[\u0400-\u04FF]/.test(s)) {
+      // Cyrillic: try Uzbek-specific letters else fallback ru
+      if (/[ўқғҳЎҚҒҲ]/i.test(s)) return "uz";
+      return "ru";
+    }
+    if (/[\u0600-\u06FF]/.test(s)) return "ar"; // Arabic script (ar/fa/ur) → ar
+
+    // Latin diacritics heuristics
+    if (/[ğışİıöüçĞİŞÖÜÇ]/.test(s)) return "tr";
+    if (/[äöüßÄÖÜ]/.test(s)) return "de";
+    if (/[áéíóúñÁÉÍÓÚÑ]/.test(s)) return "es";
+    if (/[çéèêëàâîïôûùÇÉÈÊËÀÂÎÏÔÛÙ]/.test(s)) return "fr";
+    // Uzbek Latin apostrophe variants for oʻ, gʻ
+    if (/(o['’ʻʼ]u|g['’ʻʼ])/i.test(s)) return "uz";
+    // Default to English
+    return "en";
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -231,25 +259,30 @@ export default function Vocabulary() {
       await new Promise<void>((resolve) => {
         const audio = new Audio(url);
         let resolved = false;
-        const safeResolve = () => {
+        const cleanup = () => {
           if (resolved) return;
           resolved = true;
           URL.revokeObjectURL(url);
           resolve();
         };
-        audio.onended = safeResolve;
-        audio.onerror = safeResolve;
+        audio.onended = cleanup;
+        audio.onerror = cleanup;
+        const metaGuard = setTimeout(() => {
+          // If metadata never arrives, give a generous timeout to avoid hanging
+          setTimeout(cleanup, 15000);
+        }, 3000);
         audio.onloadedmetadata = () => {
-          if (isFinite(audio.duration) && audio.duration > 0) {
-            setTimeout(safeResolve, Math.ceil(audio.duration * 1000) + 100);
-          }
+          clearTimeout(metaGuard);
+          const durMs =
+            isFinite(audio.duration) && audio.duration > 0
+              ? Math.ceil(audio.duration * 1000) + 300
+              : 12000;
+          setTimeout(cleanup, durMs);
         };
         const p = audio.play();
         if (p && typeof (p as any).then === "function") {
-          (p as Promise<void>).catch(() => safeResolve());
+          (p as Promise<void>).catch(() => cleanup());
         }
-        // Absolute fallback so we never hang (e.g., metadata never loads)
-        setTimeout(safeResolve, 7000);
       });
     } catch (e) {
       setToast(e instanceof Error ? e.message : t("failed"));
@@ -397,16 +430,19 @@ export default function Vocabulary() {
       const tr = (item.translation || "").trim();
       setSessionStatus(`${i + 1}/${sessionOrderRef.current.length}: listen`);
       if (tr) {
-        await playTTS(tr);
+        await playTTS(tr, detectTtsLanguage(tr));
       }
       if (!sessionActiveRef.current) break;
       setSessionStatus(`${i + 1}/${sessionOrderRef.current.length}: speak`);
       const result = await recordAndEvaluate(id, item.word, "en");
       if (!sessionActiveRef.current) break;
       if (result && result.correct) {
-        await playTTS(result.transcript || item.word, "en");
+        await playTTS(
+          result.transcript || item.word,
+          detectTtsLanguage(result?.transcript || item.word)
+        );
       } else {
-        await playTTS(item.word, "en");
+        await playTTS(item.word, detectTtsLanguage(item.word));
       }
       if (!sessionActiveRef.current) break;
       setSessionIndex(i + 1);
@@ -503,7 +539,12 @@ export default function Vocabulary() {
               secondaryAction={
                 <Stack direction="row" spacing={1} alignItems="center">
                   <IconButton
-                    onClick={() => playTTS(item.translation)}
+                    onClick={() =>
+                      playTTS(
+                        item.translation,
+                        detectTtsLanguage(item.translation)
+                      )
+                    }
                     title="Play"
                   >
                     <PlayArrow />

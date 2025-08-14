@@ -73,40 +73,98 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
       }>;
       const text = (body?.text ?? '').toString();
       if (!text) return reply.code(400).send({ error: 'text required' });
-      const language = (body?.language ?? 'en').toString();
-      const provider = (body?.provider ?? (language === 'uz' ? 'coqui' : 'piper')) as
+      const rawLanguage = (body?.language ?? 'en').toString();
+      const language = rawLanguage.toLowerCase().startsWith('uz')
+        ? 'uz'
+        : rawLanguage.toLowerCase().startsWith('ru')
+          ? 'ru'
+          : rawLanguage.toLowerCase().startsWith('tr')
+            ? 'tr'
+            : rawLanguage.toLowerCase().startsWith('ko')
+              ? 'ko'
+              : rawLanguage.toLowerCase().startsWith('ja')
+                ? 'ja'
+                : rawLanguage.toLowerCase().startsWith('zh')
+                  ? 'zh'
+                  : rawLanguage.toLowerCase().startsWith('ar')
+                    ? 'ar'
+                    : rawLanguage.toLowerCase().startsWith('de')
+                      ? 'de'
+                      : rawLanguage.toLowerCase().startsWith('fr')
+                        ? 'fr'
+                        : rawLanguage.toLowerCase().startsWith('es')
+                          ? 'es'
+                          : 'en';
+
+      const envFor = (prefix: string, lang: string): string | undefined => {
+        const upper = lang.toUpperCase().replace(/[-]/g, '_');
+        return (
+          process.env[`${prefix}_${upper}`] ||
+          process.env[`${prefix}_${lang}`] ||
+          process.env[prefix]
+        );
+      };
+
+      const preferredProvider = (body?.provider || envFor('PREFERRED_TTS_PROVIDER', language)) as
         | 'piper'
         | 'coqui';
 
+      const tryPiper = async (voiceHint?: string) => {
+        const piperUrl = process.env.PIPER_TTS_URL || 'http://tts-piper:8080/api/tts';
+        const qs = new URLSearchParams({ text });
+        const chosenVoice = (body?.voice || voiceHint || envFor('PIPER_VOICE', language)) ?? '';
+        const speed = body?.speed || Number(envFor('PIPER_SPEED', language) || '') || undefined;
+        if (chosenVoice) qs.set('voice', chosenVoice);
+        if (speed) qs.set('speed', String(speed));
+        const res = await fetch(`${piperUrl}?${qs.toString()}`);
+        if (!res.ok) throw new Error(`Piper not ok (${res.status})`);
+        reply.header('Content-Type', 'audio/wav');
+        reply.header('Cache-Control', 'no-store');
+        return Buffer.from(await res.arrayBuffer());
+      };
+
+      const tryCoqui = async (langHint?: string, speakerHint?: string) => {
+        const coquiUrl = process.env.COQUI_TTS_URL || 'http://tts-coqui:5000/tts';
+        const form = new URLSearchParams();
+        form.set('text', text);
+        form.set('language-id', langHint || envFor('COQUI_LANGUAGE', language) || language);
+        const speaker = body?.voice || speakerHint || envFor('COQUI_SPEAKER', language);
+        if (speaker) form.set('speaker-id', speaker);
+        const res = await fetch(coquiUrl, { method: 'POST', body: form as any });
+        if (!res.ok) throw new Error(`Coqui not ok (${res.status})`);
+        reply.header('Content-Type', 'audio/wav');
+        reply.header('Cache-Control', 'no-store');
+        return Buffer.from(await res.arrayBuffer());
+      };
+
+      const provider = preferredProvider ?? (language === 'uz' ? 'coqui' : 'piper');
+
       if (provider === 'piper') {
         try {
-          const piperUrl = process.env.PIPER_TTS_URL || 'http://tts-piper:8080/api/tts';
-          const qs = new URLSearchParams({ text });
-          if (body?.voice) qs.set('voice', body.voice);
-          if (body?.speed) qs.set('speed', String(body.speed));
-          const res = await fetch(`${piperUrl}?${qs.toString()}`);
-          if (!res.ok) return reply.code(502).send({ error: 'TTS piper failed' });
-          reply.header('Content-Type', 'audio/wav');
-          reply.header('Cache-Control', 'no-store');
-          return reply.send(Buffer.from(await res.arrayBuffer()));
+          const buf = await tryPiper();
+          return reply.send(buf);
         } catch (e: any) {
-          return reply.code(502).send({ error: e?.message || 'TTS piper unreachable' });
+          // Fallback to Coqui
+          try {
+            const buf2 = await tryCoqui();
+            return reply.send(buf2);
+          } catch (e2: any) {
+            return reply.code(502).send({ error: e2?.message || 'TTS providers unreachable' });
+          }
         }
       }
 
       try {
-        const coquiUrl = process.env.COQUI_TTS_URL || 'http://tts-uz:5002/api/tts';
-        const form = new URLSearchParams();
-        form.set('text', text);
-        form.set('language-id', language);
-        if (body?.voice) form.set('speaker-id', body.voice);
-        const res = await fetch(coquiUrl, { method: 'POST', body: form as any });
-        if (!res.ok) return reply.code(502).send({ error: 'TTS coqui failed' });
-        reply.header('Content-Type', 'audio/wav');
-        reply.header('Cache-Control', 'no-store');
-        return reply.send(Buffer.from(await res.arrayBuffer()));
+        const buf = await tryCoqui();
+        return reply.send(buf);
       } catch (e: any) {
-        return reply.code(502).send({ error: e?.message || 'TTS coqui unreachable' });
+        // Fallback to Piper
+        try {
+          const buf2 = await tryPiper();
+          return reply.send(buf2);
+        } catch (e2: any) {
+          return reply.code(502).send({ error: e2?.message || 'TTS providers unreachable' });
+        }
       }
     });
 

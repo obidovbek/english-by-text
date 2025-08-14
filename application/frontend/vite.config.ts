@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => {
   } else if (mode === "production") {
     proxyTarget = "https://linguatext.birgayur.uz";
   } else {
-    // Local development, use ngrok
-    proxyTarget = "https://wombat-accepted-whale.ngrok-free.app";
+    // Local development: always hit local backend directly
+    proxyTarget = "http://localhost:4000";
   }
 
   return {
