@@ -1,0 +1,38 @@
+# Uzbek Latin baseline single-letter mappings
+
+# Vowels
+a A
+A A
+e e
+i i
+u u
+o O      # plain o -> /ɔ/ (contrast with o‘ below)
+o: o:    # from o‘ mapping
+
+# Consonants
+b b
+d d
+f f
+g g
+G G      # ɣ (from g‘)
+h h
+j dZ
+k k
+l l
+m m
+n n
+N N      # ŋ
+p p
+q q
+r r
+s s
+S S      # ʃ
+t t
+v v
+x x      # [x]
+y j
+z z
+tS tS    # t͡ʃ
+ts ts    # [ts] (loans)
+
+# Digraphs sh/ch/ng handled in uz_rules; this file is single letters only. 

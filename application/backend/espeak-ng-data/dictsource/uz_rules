@@ -1,0 +1,62 @@
+include uz_list
+
+# ==== Normalize apostrophes to a space-delimiter for easier matching ====
+replace ’ '
+replace ʻ '
+replace ʼ '
+replace ‘ '
+replace ´ '
+replace ` '
+
+# ==== Multi-letter sequences (order matters) ====
+# sh, ch
+string  sh              S
+string  Sh              S
+string  SH              S
+string  ch              tS
+string  Ch              tS
+string  CH              tS
+
+# Smart ng: word-final or before consonant -> ŋ (N); before vowel keep n+g
+regex   ng([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|$)      N\1
+
+# ==== Apostrophe letters: o‘ and g‘ in ALL forms ====
+# o‘  -> long close-mid back rounded ~/oː/ (o:)
+regex   o[' ]           o:
+regex   O[' ]           o:
+
+# g‘  -> voiced velar/uvular fricative /ɣ/ (G)
+regex   g[' ]           G
+regex   G[' ]           G
+
+# ==== Single letters & contrasts ====
+# q and x are distinct in Uzbek
+string  q               q
+string  Q               q
+string  x               x
+string  X               x
+
+# j -> /d͡ʒ/
+string  j               dZ
+string  J               dZ
+
+# y -> /j/
+string  y               j
+string  Y               j
+
+# c -> /ts/ (loanwords)
+string  c               ts
+string  C               ts
+
+# Plain 'o' in Uzbek is more open/back than 'oʻ'
+# Use O (/ɔ/) for 'o' to keep a clear contrast with 'o:' from o‘.
+string  o               O
+string  O               O
+
+# Plain g stays [g]
+string  g               g
+string  G               g
+
+# ==== Enclitics and particles (stress behavior) ====
+# Keep global final stress; placeholders for potential de-stressing of clitics
+regex   ([AEIOUaeiouOou:])mi\b        \1mi 

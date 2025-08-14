@@ -60,10 +60,20 @@ services:
       STT_SERVICE_URL: ${STT_SERVICE_URL:-http://nginx:80/stt-api/}
       PIPER_TTS_URL: http://tts-piper:8080/api/tts
       COQUI_TTS_URL: http://tts-uz:5002/api/tts
+      # eSpeak-NG defaults for Uzbek
+      PREFERRED_TTS_PROVIDER_UZ: espeak
+      ESPEAK_VOICE_UZ: uz-Corrected
+      ESPEAK_SPEED_UZ: "170"
+      ESPEAK_PITCH_UZ: "55"
+      ESPEAK_AMPLITUDE_UZ: "175"
+      ESPEAK_GAP_UZ: "10"
+      # custom espeak-ng data path for user overrides
+      ESPEAK_DATA_PATH: /app/espeak-ng-data
     command: sh -c "npm run db:migrate && npm run db:seed && npm run dev"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
+      - ./backend/espeak-ng-data:/app/espeak-ng-data
     ports:
       - "${PORT:-4000}:4000"
     networks:
@@ -133,7 +143,6 @@ services:
     volumes:
       - piper_models:/app/models
     environment:
-      # optional env for the wrapper if any are supported in image
       TZ: Etc/UTC
     ports:
       - "8081:8080"

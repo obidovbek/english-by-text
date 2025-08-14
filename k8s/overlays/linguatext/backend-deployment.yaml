@@ -34,3 +34,21 @@ spec:
           env:
             - name: POSTGRES_HOST
               value: postgres-service-linguatext
+            - name: STT_SERVICE_URL
+              value: http://stt:7860
+            - name: PIPER_TTS_URL
+              value: http://tts-piper:8080/api/tts
+            - name: COQUI_TTS_URL
+              value: http://tts-uz:5002/api/tts
+            - name: PREFERRED_TTS_PROVIDER_UZ
+              value: espeak
+            - name: ESPEAK_VOICE_UZ
+              value: uz-Corrected
+            - name: ESPEAK_SPEED_UZ
+              value: "170"
+            - name: ESPEAK_PITCH_UZ
+              value: "55"
+            - name: ESPEAK_AMPLITUDE_UZ
+              value: "175"
+            - name: ESPEAK_GAP_UZ
+              value: "10"

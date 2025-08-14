@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-piper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tts-piper
+  template:
+    metadata:
+      labels:
+        app: tts-piper
+    spec:
+      containers:
+        - name: tts-piper
+          image: ghcr.io/arunk140/serve-piper-tts:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TZ
+              value: Etc/UTC
+          volumeMounts:
+            - name: piper-models
+              mountPath: /app/models
+      volumes:
+        - name: piper-models
+          persistentVolumeClaim:
+            claimName: piper-models-pvc-linguatext

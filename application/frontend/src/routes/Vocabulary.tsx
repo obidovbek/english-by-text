@@ -18,6 +18,11 @@ import {
   Alert,
   useTheme,
   LinearProgress,
+  MenuItem,
+  ListSubheader,
+  useMediaQuery,
+  Menu,
+  Tooltip,
 } from "@mui/material";
 import {
   Delete,
@@ -30,6 +35,8 @@ import {
   Stop,
   CheckCircle,
   Cancel,
+  MoreVert,
+  Quiz as QuizIcon,
 } from "@mui/icons-material";
 import { SwapHoriz } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -46,6 +53,7 @@ interface VocabItem {
 
 export default function Vocabulary() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
   const [items, setItems] = useState<VocabItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,6 +86,57 @@ export default function Vocabulary() {
     } catch {}
   }, [primaryField]);
 
+  // Day filter state
+  const [selectedDay, setSelectedDay] = useState<string>(() => {
+    try {
+      return localStorage.getItem("vocabulary.day") || "all";
+    } catch {
+      return "all";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("vocabulary.day", selectedDay);
+    } catch {}
+  }, [selectedDay]);
+
+  function toLocalDay(iso?: string): string | undefined {
+    if (!iso) return undefined;
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return undefined as any;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  }
+
+  const dayOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const it of items) {
+      const day = toLocalDay(it.createdAt);
+      if (day) s.add(day);
+    }
+    return Array.from(s).sort((a, b) => b.localeCompare(a));
+  }, [items]);
+
+  const visibleItems = useMemo(() => {
+    if (selectedDay === "all") return items;
+    return items.filter((it) => toLocalDay(it.createdAt) === selectedDay);
+  }, [items, selectedDay]);
+
+  const groupedByDay = useMemo(() => {
+    const map = new Map<string, VocabItem[]>();
+    for (const it of items) {
+      const day = toLocalDay(it.createdAt) || "unknown";
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(it);
+    }
+    for (const [k, arr] of map.entries()) {
+      arr.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+    }
+    return map;
+  }, [items]);
+
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | string | null>(null);
@@ -106,31 +165,112 @@ export default function Vocabulary() {
     sessionActiveRef.current = sessionActive;
   }, [sessionActive]);
 
+  const totalInSession = sessionOrderRef.current.length;
+  const sessionProgress =
+    totalInSession > 0
+      ? Math.min(100, Math.round((sessionIndex / totalInSession) * 100))
+      : 0;
+
+  // Quiz state
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizQuestions, setQuizQuestions] = useState<
+    { id: string; prompt: string; correct: string; choices: string[] }[]
+  >([]);
+  const [quizLocked, setQuizLocked] = useState(false);
+
+  // More menu (mobile)
+  const [moreEl, setMoreEl] = useState<null | HTMLElement>(null);
+  const openMore = Boolean(moreEl);
+  const openMoreMenu = (e: React.MouseEvent<HTMLElement>) =>
+    setMoreEl(e.currentTarget);
+  const closeMoreMenu = () => setMoreEl(null);
+
+  function shuffleArray<T>(arr: T[]): T[] {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function buildQuiz() {
+    const source = shuffleArray(visibleItems).slice(
+      0,
+      Math.min(visibleItems.length, 12)
+    );
+    const qs: {
+      id: string;
+      prompt: string;
+      correct: string;
+      choices: string[];
+    }[] = [];
+    for (const base of source) {
+      const askWordToTranslation = primaryField === "word";
+      const prompt = askWordToTranslation ? base.word : base.translation;
+      const correct = askWordToTranslation ? base.translation : base.word;
+      const pool = visibleItems.filter((x) => x.id !== base.id);
+      const distractors = shuffleArray(pool)
+        .slice(0, 3)
+        .map((d) => (askWordToTranslation ? d.translation : d.word));
+      const choices = shuffleArray([correct, ...distractors]);
+      qs.push({ id: String(base.id), prompt, correct, choices });
+    }
+    setQuizQuestions(qs);
+    setQuizIndex(0);
+    setQuizScore(0);
+    setQuizLocked(false);
+  }
+
+  function startQuiz() {
+    if (visibleItems.length < 2) {
+      setToast("Add more words to start a quiz");
+      return;
+    }
+    buildQuiz();
+    setQuizOpen(true);
+  }
+
+  function answer(choice: string) {
+    if (quizLocked) return;
+    setQuizLocked(true);
+    const q = quizQuestions[quizIndex];
+    const isCorrect = choice === q.correct;
+    if (isCorrect) setQuizScore((s) => s + 1);
+    setTimeout(() => {
+      if (quizIndex + 1 < quizQuestions.length) {
+        setQuizIndex((i) => i + 1);
+        setQuizLocked(false);
+      } else {
+        setQuizOpen(false);
+        setToast(
+          `Score ${quizScore + (isCorrect ? 1 : 0)}/${quizQuestions.length}`
+        );
+      }
+    }, 600);
+  }
+
   // Very lightweight language guesser for TTS routing
   function detectTtsLanguage(
     text: string | undefined | null
   ): string | undefined {
     const s = (text || "").trim();
     if (!s) return undefined;
-    // Scripts
-    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(s)) return "ja"; // Hiragana/Katakana
-    if (/[\uAC00-\uD7AF]/.test(s)) return "ko"; // Hangul
-    if (/[\u4E00-\u9FFF]/.test(s)) return "zh"; // CJK Unified Ideographs
+    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(s)) return "ja";
+    if (/[\uAC00-\uD7AF]/.test(s)) return "ko";
+    if (/[\u4E00-\u9FFF]/.test(s)) return "zh";
     if (/[\u0400-\u04FF]/.test(s)) {
-      // Cyrillic: try Uzbek-specific letters else fallback ru
       if (/[ўқғҳЎҚҒҲ]/i.test(s)) return "uz";
       return "ru";
     }
-    if (/[\u0600-\u06FF]/.test(s)) return "ar"; // Arabic script (ar/fa/ur) → ar
-
-    // Latin diacritics heuristics
+    if (/[\u0600-\u06FF]/.test(s)) return "ar";
     if (/[ğışİıöüçĞİŞÖÜÇ]/.test(s)) return "tr";
     if (/[äöüßÄÖÜ]/.test(s)) return "de";
     if (/[áéíóúñÁÉÍÓÚÑ]/.test(s)) return "es";
     if (/[çéèêëàâîïôûùÇÉÈÊËÀÂÎÏÔÛÙ]/.test(s)) return "fr";
-    // Uzbek Latin apostrophe variants for oʻ, gʻ
     if (/(o['’ʻʼ]u|g['’ʻʼ])/i.test(s)) return "uz";
-    // Default to English
     return "en";
   }
 
@@ -172,6 +312,10 @@ export default function Vocabulary() {
       setWord("");
       setTranslation("");
       setNote("");
+      const day = toLocalDay(created.createdAt);
+      if (selectedDay !== "all" && day && day !== selectedDay) {
+        setSelectedDay("all");
+      }
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : t("failed"));
     } finally {
@@ -268,7 +412,6 @@ export default function Vocabulary() {
         audio.onended = cleanup;
         audio.onerror = cleanup;
         const metaGuard = setTimeout(() => {
-          // If metadata never arrives, give a generous timeout to avoid hanging
           setTimeout(cleanup, 15000);
         }, 3000);
         audio.onloadedmetadata = () => {
@@ -402,7 +545,6 @@ export default function Vocabulary() {
             setToast(err instanceof Error ? err.message : t("failed"));
             resolve(null);
           } finally {
-            // Stop all tracks from this capture
             stream.getTracks().forEach((trk) => trk.stop());
           }
         };
@@ -452,16 +594,14 @@ export default function Vocabulary() {
   }
 
   function startPractice() {
-    if (!items.length) return;
-    // Update UI immediately
+    if (!visibleItems.length) return;
     setSessionActive(true);
     setSessionStatus("starting");
-    // Preflight mic permission
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
         stream.getTracks().forEach((t) => t.stop());
-        sessionOrderRef.current = items.map((it) => String(it.id));
+        sessionOrderRef.current = visibleItems.map((it) => String(it.id));
         setSessionIndex(0);
         void runSessionFrom(0);
       })
@@ -478,125 +618,239 @@ export default function Vocabulary() {
     setSessionStatus("");
   }
 
+  function renderListItem(item: VocabItem) {
+    const key = String(item.id);
+    const revealed = revealedIds.has(key);
+    const evalRes = evaluations[key];
+    return (
+      <ListItem
+        key={key}
+        secondaryAction={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <IconButton
+              onClick={() =>
+                playTTS(item.translation, detectTtsLanguage(item.translation))
+              }
+              title="Play"
+            >
+              <PlayArrow />
+            </IconButton>
+            {recording && recordingId === key ? (
+              <IconButton color="error" onClick={stopRecording} title="Stop">
+                <Stop />
+              </IconButton>
+            ) : (
+              <IconButton
+                onClick={() => startRecordingFor(key, item.word, "en")}
+                title="Speak"
+              >
+                <Mic />
+              </IconButton>
+            )}
+            {evalRes &&
+              (evalRes.correct ? (
+                <CheckCircle color="success" />
+              ) : (
+                <Cancel color="error" />
+              ))}
+            <IconButton onClick={() => openEditDialog(item)}>
+              <Edit />
+            </IconButton>
+            <IconButton onClick={() => removeItem(item.id)}>
+              <Delete />
+            </IconButton>
+          </Stack>
+        }
+      >
+        <ListItemText
+          primary={primaryField === "word" ? item.word : item.translation}
+          secondary={
+            revealed
+              ? primaryField === "word"
+                ? item.translation
+                : item.word
+              : undefined
+          }
+        />
+        <IconButton onClick={() => toggleReveal(item.id)}>
+          {revealed ? <VisibilityOff /> : <Visibility />}
+        </IconButton>
+      </ListItem>
+    );
+  }
+
+  const togglePrimary = () =>
+    setPrimaryField((p) => (p === "word" ? "translation" : "word"));
+
   return (
     <Box sx={{ p: 2 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-        <IconButton onClick={() => navigate(-1)}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h5">{t("vocabulary")}</Typography>
-        <Box flexGrow={1} />
-        <IconButton
-          onClick={() =>
-            setPrimaryField((p) => (p === "word" ? "translation" : "word"))
-          }
-        >
-          <SwapHoriz />
-        </IconButton>
-        {sessionActive ? (
-          <Button
-            startIcon={<Stop />}
-            color="error"
-            variant="outlined"
-            onClick={stopPractice}
+      {isMobile ? (
+        <>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+            <IconButton onClick={() => navigate(-1)}>
+              <ArrowBack />
+            </IconButton>
+            <Typography variant="h6">{t("vocabulary")}</Typography>
+            <Box flexGrow={1} />
+            <Tooltip title="More">
+              <IconButton onClick={openMoreMenu}>
+                <MoreVert />
+              </IconButton>
+            </Tooltip>
+            <Menu anchorEl={moreEl} open={openMore} onClose={closeMoreMenu}>
+              <MenuItem
+                onClick={() => {
+                  togglePrimary();
+                  closeMoreMenu();
+                }}
+              >
+                <SwapHoriz style={{ marginRight: 8 }} /> Toggle
+              </MenuItem>
+              {sessionActive ? (
+                <MenuItem
+                  onClick={() => {
+                    stopPractice();
+                    closeMoreMenu();
+                  }}
+                >
+                  <Stop style={{ marginRight: 8 }} /> Stop Practice
+                </MenuItem>
+              ) : (
+                <MenuItem
+                  onClick={() => {
+                    startPractice();
+                    closeMoreMenu();
+                  }}
+                >
+                  <PlayArrow style={{ marginRight: 8 }} /> Practice
+                </MenuItem>
+              )}
+              <MenuItem
+                onClick={() => {
+                  startQuiz();
+                  closeMoreMenu();
+                }}
+              >
+                <QuizIcon style={{ marginRight: 8 }} /> Quiz
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setDialogOpen(true);
+                  closeMoreMenu();
+                }}
+              >
+                <Add style={{ marginRight: 8 }} /> {t("add")}
+              </MenuItem>
+            </Menu>
+          </Stack>
+
+          <Stack spacing={1} sx={{ mb: 1 }}>
+            <TextField
+              select
+              size="small"
+              label="Day"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="all">All days</MenuItem>
+              {dayOptions.map((d) => (
+                <MenuItem key={d} value={d}>
+                  {d}
+                </MenuItem>
+              ))}
+            </TextField>
+            {sessionActive && (
+              <Stack spacing={0.5}>
+                <Typography variant="body2">{sessionStatus}</Typography>
+                <LinearProgress variant="determinate" value={sessionProgress} />
+              </Stack>
+            )}
+          </Stack>
+        </>
+      ) : (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+          <IconButton onClick={() => navigate(-1)}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h5">{t("vocabulary")}</Typography>
+          <Box flexGrow={1} />
+          <TextField
+            select
+            size="small"
+            label="Day"
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            sx={{ minWidth: 160 }}
           >
-            Stop
+            <MenuItem value="all">All days</MenuItem>
+            {dayOptions.map((d) => (
+              <MenuItem key={d} value={d}>
+                {d}
+              </MenuItem>
+            ))}
+          </TextField>
+          <IconButton onClick={togglePrimary}>
+            <SwapHoriz />
+          </IconButton>
+          {sessionActive ? (
+            <Button
+              startIcon={<Stop />}
+              color="error"
+              variant="outlined"
+              onClick={stopPractice}
+            >
+              Stop
+            </Button>
+          ) : (
+            <Button
+              startIcon={<PlayArrow />}
+              variant="outlined"
+              onClick={startPractice}
+            >
+              Practice
+            </Button>
+          )}
+          <Button variant="outlined" onClick={startQuiz}>
+            Quiz
           </Button>
-        ) : (
+          {sessionActive && (
+            <>
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                {sessionStatus}
+              </Typography>
+              <Box sx={{ width: 120, ml: 1 }}>
+                <LinearProgress variant="determinate" value={sessionProgress} />
+              </Box>
+            </>
+          )}
           <Button
-            startIcon={<PlayArrow />}
-            variant="outlined"
-            onClick={startPractice}
+            startIcon={<Add />}
+            variant="contained"
+            onClick={() => setDialogOpen(true)}
           >
-            Practice
+            {t("add")}
           </Button>
-        )}
-        {sessionActive && (
-          <Typography variant="body2" sx={{ ml: 1 }}>
-            {sessionStatus}
-          </Typography>
-        )}
-        <Button
-          startIcon={<Add />}
-          variant="contained"
-          onClick={() => setDialogOpen(true)}
-        >
-          {t("add")}
-        </Button>
-      </Stack>
+        </Stack>
+      )}
 
       {isLoading && <LinearProgress />}
       {error && <Alert severity="error">{error}</Alert>}
 
-      <List>
-        {items.map((item) => {
-          const key = String(item.id);
-          const revealed = revealedIds.has(key);
-          const evalRes = evaluations[key];
-          return (
-            <ListItem
-              key={key}
-              secondaryAction={
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <IconButton
-                    onClick={() =>
-                      playTTS(
-                        item.translation,
-                        detectTtsLanguage(item.translation)
-                      )
-                    }
-                    title="Play"
-                  >
-                    <PlayArrow />
-                  </IconButton>
-                  {recording && recordingId === key ? (
-                    <IconButton
-                      color="error"
-                      onClick={stopRecording}
-                      title="Stop"
-                    >
-                      <Stop />
-                    </IconButton>
-                  ) : (
-                    <IconButton
-                      onClick={() => startRecordingFor(key, item.word, "en")}
-                      title="Speak"
-                    >
-                      <Mic />
-                    </IconButton>
-                  )}
-                  {evalRes &&
-                    (evalRes.correct ? (
-                      <CheckCircle color="success" />
-                    ) : (
-                      <Cancel color="error" />
-                    ))}
-                  <IconButton onClick={() => openEditDialog(item)}>
-                    <Edit />
-                  </IconButton>
-                  <IconButton onClick={() => removeItem(item.id)}>
-                    <Delete />
-                  </IconButton>
-                </Stack>
-              }
-            >
-              <ListItemText
-                primary={primaryField === "word" ? item.word : item.translation}
-                secondary={
-                  revealed
-                    ? primaryField === "word"
-                      ? item.translation
-                      : item.word
-                    : undefined
-                }
-              />
-              <IconButton onClick={() => toggleReveal(item.id)}>
-                {revealed ? <VisibilityOff /> : <Visibility />}
-              </IconButton>
-            </ListItem>
-          );
-        })}
-      </List>
+      {selectedDay === "all" ? (
+        <List>
+          {dayOptions.map((day) => (
+            <li key={day}>
+              <ul>
+                <ListSubheader disableSticky>{day}</ListSubheader>
+                {(groupedByDay.get(day) || []).map((it) => renderListItem(it))}
+              </ul>
+            </li>
+          ))}
+        </List>
+      ) : (
+        <List>{visibleItems.map((item) => renderListItem(item))}</List>
+      )}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth>
         <DialogTitle>{t("add")}</DialogTitle>
@@ -661,6 +915,37 @@ export default function Vocabulary() {
           >
             {t("save")}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={quizOpen} onClose={() => setQuizOpen(false)} fullWidth>
+        <DialogTitle>Quiz</DialogTitle>
+        <DialogContent>
+          {quizQuestions.length > 0 && quizIndex < quizQuestions.length && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Typography variant="body1">
+                {quizIndex + 1}/{quizQuestions.length}:{" "}
+                {quizQuestions[quizIndex].prompt}
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {quizQuestions[quizIndex].choices.map((c) => (
+                  <Button
+                    key={c}
+                    variant="outlined"
+                    disabled={quizLocked}
+                    onClick={() => answer(c)}
+                    sx={{ mr: 1, mb: 1 }}
+                  >
+                    {c}
+                  </Button>
+                ))}
+              </Stack>
+              <Typography variant="body2">Score: {quizScore}</Typography>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQuizOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tts-piper
+spec:
+  selector:
+    app: tts-piper
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP

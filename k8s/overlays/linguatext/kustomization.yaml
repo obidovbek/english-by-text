@@ -8,6 +8,13 @@ resources:
   - frontend-service.yaml
   - postgres.yaml
   - middleware.yaml
+  - stt-deployment.yaml
+  - stt-service.yaml
+  - tts-piper-deployment.yaml
+  - tts-piper-service.yaml
+  - tts-uz-deployment.yaml
+  - tts-uz-service.yaml
+  - piper-models-pv-pvc.yaml
 
 configMapGenerator:
   - name: app-linguatext-env

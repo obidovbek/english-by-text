@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogActions,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { ArrowBack } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -42,6 +43,7 @@ interface TextDTO {
 
 export default function StudyText() {
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const { id } = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState<TextDTO | null>(null);
@@ -89,6 +91,15 @@ export default function StudyText() {
       return 1;
     }
   });
+
+  const fontScale = useMemo(() => {
+    const base = isSmallScreen ? 1.12 : 1;
+    const scaled = Math.min(
+      2,
+      Math.max(0.8, Math.round(zoom * base * 100) / 100)
+    );
+    return scaled;
+  }, [zoom, isSmallScreen]);
 
   // Load text
   useEffect(() => {
@@ -413,8 +424,6 @@ export default function StudyText() {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            transform: `scale(${zoom})`,
-            transformOrigin: "top center",
           }}
         >
           {/* Uzbek sentence at top center */}
@@ -424,7 +433,9 @@ export default function StudyText() {
                 mb: 1,
                 lineHeight: 1.3,
                 fontWeight: 700,
-                fontSize: "clamp(1rem, 4vw, 1.4rem)",
+                fontSize: `clamp(${(1 * fontScale).toFixed(2)}rem, ${
+                  4 * fontScale
+                }vw, ${(1.4 * fontScale).toFixed(2)}rem)`,
                 color: "text.primary",
               }}
             >
@@ -449,13 +460,22 @@ export default function StudyText() {
             >
               <Typography
                 variant="caption"
-                sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                  mb: 0.5,
+                  fontSize: `${(0.78 * fontScale).toFixed(3)}rem`,
+                }}
               >
                 {t("correctAnswer")}
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: "text.primary", fontWeight: 500 }}
+                sx={{
+                  color: "text.primary",
+                  fontWeight: 500,
+                  fontSize: `${(0.95 * fontScale).toFixed(3)}rem`,
+                }}
               >
                 {currentSentence.en}
               </Typography>
@@ -475,7 +495,7 @@ export default function StudyText() {
             {/* Build area for English sentence */}
             <Box
               sx={{
-                minHeight: 50,
+                minHeight: 50 * fontScale,
                 p: 1.5,
                 borderRadius: 2,
                 border: "1px dashed",
@@ -524,10 +544,10 @@ export default function StudyText() {
                         borderRadius: 1.5,
                         px: 1.2,
                         py: 0.4,
-                        minHeight: 32,
+                        minHeight: 32 * fontScale,
                         backgroundColor: "primary.main",
                         color: "primary.contrastText",
-                        fontSize: "0.8rem",
+                        fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                         fontWeight: 500,
                         textTransform: "none",
                         "&:hover": {
@@ -549,6 +569,7 @@ export default function StudyText() {
                       fontStyle: "italic",
                       textAlign: "center",
                       px: 2,
+                      fontSize: `${(0.78 * fontScale).toFixed(3)}rem`,
                     }}
                   >
                     {t("tapWordsBelow")}
@@ -587,13 +608,13 @@ export default function StudyText() {
                       borderRadius: 1.5,
                       px: 1.2,
                       py: 0.4,
-                      minHeight: 32,
+                      minHeight: 32 * fontScale,
                       color: "text.primary",
                       borderColor:
                         theme.palette.mode === "dark"
                           ? "rgba(255, 255, 255, 0.4)"
                           : "rgba(0, 0, 0, 0.4)",
-                      fontSize: "0.8rem",
+                      fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                       fontWeight: 500,
                       textTransform: "none",
                       "&:hover": {
@@ -628,7 +649,12 @@ export default function StudyText() {
             >
               <Typography
                 variant="caption"
-                sx={{ color: "text.secondary", display: "block", mb: 1 }}
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                  mb: 1,
+                  fontSize: `${(0.78 * fontScale).toFixed(3)}rem`,
+                }}
               >
                 {t("edit")}
               </Typography>
@@ -638,12 +664,23 @@ export default function StudyText() {
                     size={16}
                     sx={{ color: "text.secondary" }}
                   />
-                  <Typography sx={{ color: "text.primary" }}>
+                  <Typography
+                    sx={{
+                      color: "text.primary",
+                      fontSize: `${(0.95 * fontScale).toFixed(3)}rem`,
+                    }}
+                  >
                     {t("loading")}
                   </Typography>
                 </Stack>
               ) : tokens.length === 0 ? (
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: `${(0.9 * fontScale).toFixed(3)}rem`,
+                  }}
+                >
                   {t("noSentences")}
                 </Typography>
               ) : (
@@ -655,7 +692,13 @@ export default function StudyText() {
                       spacing={1}
                       alignItems="center"
                     >
-                      <Typography sx={{ color: "text.primary", minWidth: 80 }}>
+                      <Typography
+                        sx={{
+                          color: "text.primary",
+                          minWidth: 80,
+                          fontSize: `${(0.95 * fontScale).toFixed(3)}rem`,
+                        }}
+                      >
                         {tok.uz}
                       </Typography>
                       <TextField
@@ -677,7 +720,10 @@ export default function StudyText() {
                         }
                         sx={{
                           flex: 1,
-                          "& .MuiInputBase-input": { color: "text.primary" },
+                          "& .MuiInputBase-input": {
+                            color: "text.primary",
+                            fontSize: `${(0.95 * fontScale).toFixed(3)}rem`,
+                          },
                           "& .MuiOutlinedInput-root": {
                             "& fieldset": {
                               borderColor:
@@ -722,8 +768,8 @@ export default function StudyText() {
                   backgroundColor: "action.hover",
                 },
                 minWidth: 36,
-                minHeight: 32,
-                fontSize: "0.8rem",
+                minHeight: 32 * fontScale,
+                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: 2,
@@ -741,6 +787,7 @@ export default function StudyText() {
                 alignSelf: "center",
                 minWidth: 44,
                 textAlign: "center",
+                fontSize: `${(0.78 * fontScale).toFixed(3)}rem`,
               }}
             >
               {Math.round(zoom * 100)}%
@@ -758,8 +805,8 @@ export default function StudyText() {
                   backgroundColor: "action.hover",
                 },
                 minWidth: 36,
-                minHeight: 32,
-                fontSize: "0.8rem",
+                minHeight: 32 * fontScale,
+                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: 2,
@@ -781,8 +828,8 @@ export default function StudyText() {
                   backgroundColor: "action.hover",
                 },
                 minWidth: 52,
-                minHeight: 32,
-                fontSize: "0.8rem",
+                minHeight: 32 * fontScale,
+                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: 2,
@@ -866,6 +913,10 @@ export default function StudyText() {
                     theme.palette.mode === "dark"
                       ? "rgba(255, 255, 255, 0.3)"
                       : "rgba(0, 0, 0, 0.3)",
+                  minHeight: 36 * fontScale,
+                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
+                  fontWeight: 600,
+                  textTransform: "none",
                 }}
               >
                 {t("vocabulary")}
@@ -880,8 +931,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36,
-                  fontSize: "0.8rem",
+                  minHeight: 36 * fontScale,
+                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -902,8 +953,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36,
-                  fontSize: "0.8rem",
+                  minHeight: 36 * fontScale,
+                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -934,8 +985,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36,
-                  fontSize: "0.8rem",
+                  minHeight: 36 * fontScale,
+                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -956,8 +1007,8 @@ export default function StudyText() {
                     backgroundColor: "primary.dark",
                   },
                   minWidth: 70,
-                  minHeight: 36,
-                  fontSize: "0.8rem",
+                  minHeight: 36 * fontScale,
+                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -999,8 +1050,8 @@ export default function StudyText() {
                         : "rgba(0, 0, 0, 0.12)",
                   },
                   minWidth: 80,
-                  minHeight: 40,
-                  fontSize: "0.85rem",
+                  minHeight: 40 * fontScale,
+                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1026,8 +1077,8 @@ export default function StudyText() {
                     color: "text.disabled",
                   },
                   minWidth: 80,
-                  minHeight: 40,
-                  fontSize: "0.85rem",
+                  minHeight: 40 * fontScale,
+                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,

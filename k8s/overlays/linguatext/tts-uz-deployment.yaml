@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-uz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tts-uz
+  template:
+    metadata:
+      labels:
+        app: tts-uz
+    spec:
+      containers:
+        - name: tts-uz
+          image: ghcr.io/coqui-ai/tts-cpu:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+          env:
+            - name: COQUI_TOS_AGREED
+              value: "1"
+          command:
+            [
+              "/bin/sh",
+              "-lc",
+              "python3 -m TTS.server.server --model_name tts_models/multilingual/multi-dataset/xtts_v2",
+            ]

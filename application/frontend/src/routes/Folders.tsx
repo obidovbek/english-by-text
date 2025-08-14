@@ -1053,8 +1053,17 @@ export default function Folders() {
                 setEnRaw("");
                 setToast(t("textCreated"));
 
-                // Clear cache and navigate
+                // Clear caches and update UI
+                mainFolderCache.delete(getMainCacheKey(parentId));
                 clearFolderCache();
+                setTexts((prev) => [
+                  {
+                    id: created.id,
+                    title: created.title,
+                    createdAt: new Date().toISOString(),
+                  },
+                  ...prev,
+                ]);
                 navigate(`/texts/${created.id}`);
               } catch (e) {
                 const msg = e instanceof Error ? e.message : t("failed");

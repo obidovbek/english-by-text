@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync } from 'fs';
 import path from 'path';
+import { spawn } from 'child_process';
 
 function normalizePerLanguage(input: string, lang: string): string {
   let s = (input || '').toLowerCase().trim();
@@ -60,6 +61,32 @@ async function tryFetchJson(url: string, body: FormData): Promise<any> {
   return res.json();
 }
 
+// Normalize Uzbek Latin apostrophes to the proper character for better TTS (oʻ, gʻ)
+function normalizeUzbekTextForTTS(input: string): string {
+  if (!input) return input;
+  // Replace o' / O' (and common apostrophe variants) with oʻ / Oʻ (U+02BB)
+  const apos = "['’ʻʼ]";
+  return input
+    .replace(new RegExp(`(o)${apos}`, 'gi'), (m) => (m[0] === 'O' ? 'Oʻ' : 'oʻ'))
+    .replace(new RegExp(`(g)${apos}`, 'gi'), (m) => (m[0] === 'G' ? 'Gʻ' : 'gʻ'));
+}
+
+// For espeak-ng, prefer plain ASCII apostrophes in Uzbek Latin
+function normalizeUzbekTextForEspeak(input: string): string {
+  if (!input) return input;
+  return input.replace(/[ʻ’ʼ]/g, "'");
+}
+
+function guessUzbekFromText(input: string): boolean {
+  const s = input || '';
+  if (!s) return false;
+  // Cyrillic Uzbek letters
+  if (/[ўқғҳЎҚҒҲ]/.test(s)) return true;
+  // Latin o'/g' patterns including various apostrophes or precomposed oʻ/gʻ
+  if (/(o[\u02BB'’ʼʻ]|g[\u02BB'’ʼʻ])/i.test(s)) return true;
+  return false;
+}
+
 const studyRoutes: FastifyPluginAsync = async (fastify) => {
   const bases = ['/api', ''];
   for (const base of bases) {
@@ -67,13 +94,18 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
       const body = request.body as Partial<{
         text: string;
         language?: string;
-        provider?: 'piper' | 'coqui';
+        provider?: 'piper' | 'coqui' | 'espeak';
         voice?: string;
         speed?: number;
+        speakerWav?: string;
+        pitch?: number;
+        amplitude?: number;
+        gap?: number;
+        format?: 'audio' | 'ipa';
       }>;
       const text = (body?.text ?? '').toString();
       if (!text) return reply.code(400).send({ error: 'text required' });
-      const rawLanguage = (body?.language ?? 'en').toString();
+      const rawLanguage = (body?.language ?? (guessUzbekFromText(text) ? 'uz' : 'en')).toString();
       const language = rawLanguage.toLowerCase().startsWith('uz')
         ? 'uz'
         : rawLanguage.toLowerCase().startsWith('ru')
@@ -107,11 +139,15 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
 
       const preferredProvider = (body?.provider || envFor('PREFERRED_TTS_PROVIDER', language)) as
         | 'piper'
-        | 'coqui';
+        | 'coqui'
+        | 'espeak';
+
+      // Prepare text for TTS (Uzbek-specific normalization)
+      const textForTts = language === 'uz' ? normalizeUzbekTextForTTS(text) : text;
 
       const tryPiper = async (voiceHint?: string) => {
         const piperUrl = process.env.PIPER_TTS_URL || 'http://tts-piper:8080/api/tts';
-        const qs = new URLSearchParams({ text });
+        const qs = new URLSearchParams({ text: textForTts });
         const chosenVoice = (body?.voice || voiceHint || envFor('PIPER_VOICE', language)) ?? '';
         const speed = body?.speed || Number(envFor('PIPER_SPEED', language) || '') || undefined;
         if (chosenVoice) qs.set('voice', chosenVoice);
@@ -126,10 +162,20 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
       const tryCoqui = async (langHint?: string, speakerHint?: string) => {
         const coquiUrl = process.env.COQUI_TTS_URL || 'http://tts-coqui:5000/tts';
         const form = new URLSearchParams();
-        form.set('text', text);
-        form.set('language-id', langHint || envFor('COQUI_LANGUAGE', language) || language);
+        form.set('text', textForTts);
+        const langParam = langHint || envFor('COQUI_LANGUAGE', language) || language;
+        // Send both common variants for compatibility
+        form.set('language_id', langParam);
+        form.set('language', langParam);
         const speaker = body?.voice || speakerHint || envFor('COQUI_SPEAKER', language);
-        if (speaker) form.set('speaker-id', speaker);
+        if (speaker) {
+          form.set('speaker_id', speaker);
+          form.set('speaker', speaker);
+        }
+        const speakerWav = body?.speakerWav || envFor('COQUI_SPEAKER_WAV', language);
+        if (speakerWav) {
+          form.set('speaker_wav', speakerWav);
+        }
         const res = await fetch(coquiUrl, { method: 'POST', body: form as any });
         if (!res.ok) throw new Error(`Coqui not ok (${res.status})`);
         reply.header('Content-Type', 'audio/wav');
@@ -137,33 +183,122 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
         return Buffer.from(await res.arrayBuffer());
       };
 
-      const provider = preferredProvider ?? (language === 'uz' ? 'coqui' : 'piper');
+      const tryEspeak = async () => {
+        const voice = (body?.voice || envFor('ESPEAK_VOICE', language) || language || 'uz').trim();
+        const speed = body?.speed || Number(envFor('ESPEAK_SPEED', language) || '') || undefined;
+        const pitch = body?.pitch || Number(envFor('ESPEAK_PITCH', language) || '') || undefined;
+        const amplitude =
+          body?.amplitude || Number(envFor('ESPEAK_AMPLITUDE', language) || '') || undefined;
+        const gap = body?.gap || Number(envFor('ESPEAK_GAP', language) || '') || undefined;
+        const isIpa = (body?.format || '').toLowerCase() === 'ipa';
+        const args = ['-v', voice, isIpa ? '--ipa' : '--stdout'];
+        const espeakDataPath = process.env.ESPEAK_DATA_PATH || '';
+        if (espeakDataPath && existsSync(espeakDataPath)) {
+          args.push('--path', espeakDataPath);
+        }
+        if (speed && Number.isFinite(speed)) {
+          args.push('-s', String(Math.max(80, Math.min(300, Math.round(speed)))));
+        }
+        if (pitch && Number.isFinite(pitch)) {
+          args.push('-p', String(Math.max(0, Math.min(99, Math.round(pitch)))));
+        }
+        if (amplitude && Number.isFinite(amplitude)) {
+          args.push('-a', String(Math.max(0, Math.min(200, Math.round(amplitude)))));
+        }
+        if (gap && Number.isFinite(gap)) {
+          args.push('-g', String(Math.max(0, Math.min(1000, Math.round(gap)))));
+        }
+        const proc = spawn('espeak-ng', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+        const textForEspeak = language === 'uz' ? normalizeUzbekTextForEspeak(text) : text;
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
+        proc.stdout.on('data', (d) => stdoutChunks.push(Buffer.from(d)));
+        proc.stderr.on('data', (d) => stderrChunks.push(Buffer.from(d)));
+        const done: Promise<Buffer> = new Promise((resolve, reject) => {
+          proc.on('error', reject);
+          proc.on('close', (code) => {
+            if (code === 0 && stdoutChunks.length > 0) {
+              resolve(Buffer.concat(stdoutChunks));
+            } else {
+              const msg = Buffer.concat(stderrChunks).toString('utf8') || `espeak-ng exit ${code}`;
+              reject(new Error(msg));
+            }
+          });
+        });
+        proc.stdin.write(textForEspeak);
+        proc.stdin.end();
+        const out = await done;
+        if (isIpa) {
+          reply.header('Content-Type', 'text/plain; charset=utf-8');
+          reply.header('Cache-Control', 'no-store');
+          return out.toString('utf8');
+        }
+        reply.header('Content-Type', 'audio/wav');
+        reply.header('Cache-Control', 'no-store');
+        return out;
+      };
+
+      const provider = preferredProvider ?? (language === 'uz' ? 'espeak' : 'piper');
 
       if (provider === 'piper') {
         try {
           const buf = await tryPiper();
           return reply.send(buf);
         } catch (e: any) {
-          // Fallback to Coqui
           try {
             const buf2 = await tryCoqui();
             return reply.send(buf2);
           } catch (e2: any) {
+            if (language === 'uz') {
+              try {
+                const buf3 = await tryEspeak();
+                return reply.send(buf3);
+              } catch (e3: any) {
+                return reply.code(502).send({ error: e3?.message || 'TTS providers unreachable' });
+              }
+            }
             return reply.code(502).send({ error: e2?.message || 'TTS providers unreachable' });
           }
         }
       }
 
+      if (provider === 'coqui') {
+        try {
+          const buf = await tryCoqui();
+          return reply.send(buf);
+        } catch (e: any) {
+          try {
+            const buf2 = await tryPiper();
+            return reply.send(buf2);
+          } catch (e2: any) {
+            if (language === 'uz') {
+              try {
+                const buf3 = await tryEspeak();
+                return reply.send(buf3);
+              } catch (e3: any) {
+                return reply.code(502).send({ error: e3?.message || 'TTS providers unreachable' });
+              }
+            }
+            return reply.code(502).send({ error: e2?.message || 'TTS providers unreachable' });
+          }
+        }
+      }
+
+      // espeak (default for Uzbek)
       try {
-        const buf = await tryCoqui();
+        const buf = await tryEspeak();
         return reply.send(buf);
       } catch (e: any) {
-        // Fallback to Piper
         try {
-          const buf2 = await tryPiper();
+          const buf2 = await tryCoqui();
           return reply.send(buf2);
         } catch (e2: any) {
-          return reply.code(502).send({ error: e2?.message || 'TTS providers unreachable' });
+          try {
+            const buf3 = await tryPiper();
+            return reply.send(buf3);
+          } catch (e3: any) {
+            return reply.code(502).send({ error: e3?.message || 'TTS providers unreachable' });
+          }
         }
       }
     });
@@ -221,22 +356,15 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
       }>;
       const target = (body?.target ?? '').toString();
       const hypothesis = (body?.hypothesis ?? '').toString();
-      const lang = (body?.language ?? 'en').toString();
-      if (!target) return reply.code(400).send({ error: 'target required' });
-      const nt = normalizePerLanguage(target, lang);
-      const nh = normalizePerLanguage(hypothesis, lang);
-      const dist = levenshtein(nt, nh);
-      const maxLen = Math.max(nt.length, 1);
-      const similarity = 1 - dist / maxLen;
-      const threshold = typeof body?.threshold === 'number' ? body!.threshold! : 0.85;
-      return reply.send({
-        normalizedTarget: nt,
-        normalizedHypothesis: nh,
-        distance: dist,
-        similarity,
-        correct: similarity >= threshold,
-        threshold,
-      });
+      const language = (body?.language ?? 'en').toString();
+
+      const normalizedTarget = normalizePerLanguage(target, language);
+      const normalizedHypothesis = normalizePerLanguage(hypothesis, language);
+      const distance = levenshtein(normalizedTarget, normalizedHypothesis);
+      const maxLen = Math.max(normalizedTarget.length, normalizedHypothesis.length) || 1;
+      const similarity = 1 - distance / maxLen;
+      const correct = similarity >= (body?.threshold ?? 0.8);
+      return reply.send({ correct, similarity });
     });
 
     fastify.post(`${base}/review/:id`, async (request, reply) => {
