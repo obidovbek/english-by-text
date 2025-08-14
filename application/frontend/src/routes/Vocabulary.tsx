@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { getJSON, postJSON, deleteJSON, patchJSON } from "../api/client";
 import {
   Box,
@@ -37,6 +37,8 @@ import {
   Cancel,
   MoreVert,
   Quiz as QuizIcon,
+  ExpandLess,
+  ExpandMore,
 } from "@mui/icons-material";
 import { SwapHoriz } from "@mui/icons-material";
 import { t } from "../i18n";
@@ -49,6 +51,12 @@ interface VocabItem {
   translation: string;
   note?: string | null;
   createdAt?: string;
+}
+
+interface VocabPage {
+  items: VocabItem[];
+  nextCursor?: number;
+  nextCursorId?: number;
 }
 
 export default function Vocabulary() {
@@ -68,6 +76,18 @@ export default function Vocabulary() {
   const [isCreating, setIsCreating] = useState(false);
 
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+
+  // Pagination state
+  const [nextCursor, setNextCursor] = useState<number | undefined>(undefined);
+  const [nextCursorId, setNextCursorId] = useState<number | undefined>(
+    undefined
+  );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Collapsed day groups
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
   // Primary display mode: 'word' or 'translation'
   const [primaryField, setPrimaryField] = useState<"word" | "translation">(
@@ -136,6 +156,72 @@ export default function Vocabulary() {
     }
     return map;
   }, [items]);
+
+  const loadFirstPage = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const page = await getJSON<VocabPage>(`/api/vocabulary?limit=50`);
+      setItems(page.items || []);
+      setNextCursor(page.nextCursor);
+      setNextCursorId(page.nextCursorId);
+      setHasMore(!!page.nextCursor);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("failed"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFirstPage();
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore) return;
+    if (!hasMore || nextCursor === undefined) return;
+    try {
+      setIsLoadingMore(true);
+      const qs = new URLSearchParams();
+      qs.set("limit", "50");
+      qs.set("cursor", String(nextCursor));
+      if (nextCursorId !== undefined) qs.set("cursorId", String(nextCursorId));
+      const page = await getJSON<VocabPage>(`/api/vocabulary?${qs.toString()}`);
+      setItems((prev) => [...prev, ...(page.items || [])]);
+      setNextCursor(page.nextCursor);
+      setNextCursorId(page.nextCursorId);
+      setHasMore(!!page.nextCursor);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : t("failed"));
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, nextCursor, nextCursorId]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loadMore]);
+
+  function toggleDayCollapse(day: string) {
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  }
 
   // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -273,21 +359,6 @@ export default function Vocabulary() {
     if (/(o['’ʻʼ]u|g['’ʻʼ])/i.test(s)) return "uz";
     return "en";
   }
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await getJSON<VocabItem[]>("/api/vocabulary");
-        setItems(data);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t("failed"));
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
 
   async function addItem() {
     const w = word.trim();
@@ -842,8 +913,26 @@ export default function Vocabulary() {
           {dayOptions.map((day) => (
             <li key={day}>
               <ul>
-                <ListSubheader disableSticky>{day}</ListSubheader>
-                {(groupedByDay.get(day) || []).map((it) => renderListItem(it))}
+                <ListSubheader
+                  disableSticky
+                  onClick={() => toggleDayCollapse(day)}
+                  sx={{
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {collapsedDays.has(day) ? (
+                    <ExpandMore fontSize="small" />
+                  ) : (
+                    <ExpandLess fontSize="small" />
+                  )}
+                  <Box component="span" sx={{ ml: 1 }}>
+                    {day}
+                  </Box>
+                </ListSubheader>
+                {!collapsedDays.has(day) &&
+                  (groupedByDay.get(day) || []).map((it) => renderListItem(it))}
               </ul>
             </li>
           ))}
@@ -851,6 +940,9 @@ export default function Vocabulary() {
       ) : (
         <List>{visibleItems.map((item) => renderListItem(item))}</List>
       )}
+
+      <Box ref={sentinelRef} sx={{ height: 1 }} />
+      {isLoadingMore && <LinearProgress />}
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth>
         <DialogTitle>{t("add")}</DialogTitle>
@@ -873,6 +965,7 @@ export default function Vocabulary() {
               multiline
               rows={3}
             />
+            {createError && <Alert severity="error">{createError}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>

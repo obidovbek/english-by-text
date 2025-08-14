@@ -56,6 +56,21 @@ export async function getJSON<TResponse = unknown>(
   return maybeJson as TResponse;
 }
 
+export async function getJSONRaw(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
+  const userId = localStorage.getItem("userId");
+  return fetch(url, {
+    method: "GET",
+    headers: {
+      ...(userId ? { "x-user-id": userId } : {}),
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  });
+}
+
 export async function patchJSON<TRequest extends object, TResponse = unknown>(
   url: string,
   body: TRequest,

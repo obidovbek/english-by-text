@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
+import { Op } from 'sequelize';
 
 function getUserId(request: any): number | undefined {
   const reqAny = request as any;
@@ -12,13 +13,39 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
   const bases = ['/vocabulary', '/api/vocabulary'];
 
   for (const base of bases) {
-    // GET list
+    // GET list (cursor pagination)
     fastify.get(base, async (request, reply) => {
       const userId = getUserId(request);
       if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
-      const items = await fastify.models.Vocabulary.findAll({
-        where: { userId },
-        order: [['createdAt', 'DESC']],
+
+      const q = (request as any).query || {};
+      const limit = Math.max(1, Math.min(200, Number(q.limit ?? 50) || 50));
+      const cursorTsRaw = q.cursor !== undefined ? Number(q.cursor) : undefined;
+      const cursorIdRaw = q.cursorId !== undefined ? Number(q.cursorId) : undefined;
+      const cursorTs = Number.isFinite(cursorTsRaw) ? (cursorTsRaw as number) : undefined;
+      const cursorId = Number.isFinite(cursorIdRaw) ? (cursorIdRaw as number) : undefined;
+
+      const where: any = { userId };
+      if (cursorTs !== undefined) {
+        const cursorDate = new Date(cursorTs);
+        if (Number.isFinite(cursorDate.getTime())) {
+          if (cursorId !== undefined) {
+            where[Op.or] = [
+              { createdAt: { [Op.lt]: cursorDate } },
+              { [Op.and]: [{ createdAt: { [Op.eq]: cursorDate } }, { id: { [Op.lt]: cursorId } }] },
+            ];
+          } else {
+            where.createdAt = { [Op.lt]: cursorDate };
+          }
+        }
+      }
+
+      const results = await fastify.models.Vocabulary.findAll({
+        where,
+        order: [
+          ['createdAt', 'DESC'],
+          ['id', 'DESC'],
+        ],
         attributes: [
           'id',
           'word',
@@ -36,8 +63,17 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
           'lastResult',
           'createdAt',
         ],
+        limit: limit + 1,
       });
-      return reply.send(items);
+
+      const hasMore = results.length > limit;
+      const items = hasMore ? results.slice(0, limit) : results;
+      const last = items[items.length - 1] as any;
+      const nextCursor =
+        hasMore && last?.createdAt ? new Date(last.createdAt).getTime() : undefined;
+      const nextCursorId = hasMore && last?.id ? Number(last.id) : undefined;
+
+      return reply.send({ items, nextCursor, nextCursorId });
     });
 
     // POST create
