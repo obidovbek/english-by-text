@@ -79,6 +79,8 @@ async function cloneFolderTree(
     userId: toUserId,
     name: newFolderName,
     parentId: targetParentId,
+    sourceFolderId: sourceFolderId,
+    sourceOwnerUserId: fromUserId,
   });
   const newFolderId = created.id as number;
 
@@ -94,6 +96,7 @@ async function cloneFolderTree(
       title: newTitle,
       uzRaw: (tx as any).uzRaw,
       enRaw: (tx as any).enRaw,
+      sourceTextId: (tx as any).id,
     });
     const sentences = await fastify.models.Sentence.findAll({
       where: { textId: (tx as any).id },
@@ -143,6 +146,178 @@ async function cascadeSetGlobal(
   }
 }
 
+export async function syncMirroredFolderTree(
+  fastify: any,
+  ownerUserId: number,
+  mirrorRootId: number,
+): Promise<void> {
+  const root = await fastify.models.Folder.findOne({
+    where: { id: mirrorRootId, userId: ownerUserId },
+  });
+  if (!root) return;
+  const sourceFolderId = (root as any).sourceFolderId as number | null;
+  const sourceOwnerUserId = (root as any).sourceOwnerUserId as number | null;
+  if (!sourceFolderId || !sourceOwnerUserId) return; // not a mirrored folder
+
+  const queue: Array<{ mirrorId: number; sourceId: number }> = [
+    { mirrorId: mirrorRootId, sourceId: sourceFolderId },
+  ];
+
+  while (queue.length > 0) {
+    const { mirrorId, sourceId } = queue.shift()!;
+
+    // Sync child folders: add new ones and delete those removed at source
+    const sourceChildren = await fastify.models.Folder.findAll({
+      where: { parentId: sourceId, userId: sourceOwnerUserId },
+      attributes: ['id', 'name'],
+    });
+    const sourceChildIds = new Set<number>(
+      sourceChildren.map((sc: any) => (sc as any).id as number),
+    );
+
+    const mirrorChildren = await fastify.models.Folder.findAll({
+      where: {
+        userId: ownerUserId,
+        parentId: mirrorId,
+        sourceOwnerUserId: sourceOwnerUserId,
+      },
+      attributes: ['id', 'sourceFolderId'],
+    });
+
+    // Delete mirror children that no longer exist in source
+    const toDeleteChildIds: number[] = [];
+    for (const mc of mirrorChildren) {
+      const srcId = (mc as any).sourceFolderId as number | null;
+      if (srcId && !sourceChildIds.has(srcId)) {
+        toDeleteChildIds.push((mc as any).id as number);
+      }
+    }
+    if (toDeleteChildIds.length > 0) {
+      await fastify.models.Folder.destroy({
+        where: { id: { [Op.in]: toDeleteChildIds }, userId: ownerUserId },
+      });
+    }
+
+    // Ensure all source children exist as mirrors and enqueue for deeper sync
+    for (const sc of sourceChildren) {
+      const existing = await fastify.models.Folder.findOne({
+        where: {
+          userId: ownerUserId,
+          parentId: mirrorId,
+          sourceFolderId: (sc as any).id,
+          sourceOwnerUserId: sourceOwnerUserId,
+        },
+        attributes: ['id'],
+      });
+      let childMirrorId: number;
+      if (!existing) {
+        const newName = await uniqueFolderName(fastify, ownerUserId, mirrorId, (sc as any).name);
+        const created = await fastify.models.Folder.create({
+          userId: ownerUserId,
+          name: newName,
+          parentId: mirrorId,
+          sourceFolderId: (sc as any).id,
+          sourceOwnerUserId: sourceOwnerUserId,
+        });
+        childMirrorId = (created as any).id as number;
+      } else {
+        childMirrorId = (existing as any).id as number;
+      }
+      queue.push({ mirrorId: childMirrorId, sourceId: (sc as any).id as number });
+    }
+
+    // Sync texts in this folder: add new ones, update edits, delete removed
+    const sourceTexts = await fastify.models.Text.findAll({
+      where: { folderId: sourceId, userId: sourceOwnerUserId },
+      attributes: ['id', 'title', 'uzRaw', 'enRaw', 'updatedAt'],
+      order: [['createdAt', 'ASC']],
+    });
+    const sourceTextIds = new Set<number>(sourceTexts.map((st: any) => (st as any).id as number));
+
+    const mirrorTexts = await fastify.models.Text.findAll({
+      where: { userId: ownerUserId, folderId: mirrorId },
+      attributes: ['id', 'title', 'uzRaw', 'enRaw', 'sourceTextId'],
+    });
+
+    // Delete mirror texts that no longer exist at source (only those that came from source)
+    const toDeleteTextIds: number[] = [];
+    for (const mt of mirrorTexts) {
+      const srcId = (mt as any).sourceTextId as number | null;
+      if (srcId && !sourceTextIds.has(srcId)) {
+        toDeleteTextIds.push((mt as any).id as number);
+      }
+    }
+    if (toDeleteTextIds.length > 0) {
+      await fastify.models.Text.destroy({
+        where: { id: { [Op.in]: toDeleteTextIds }, userId: ownerUserId, folderId: mirrorId },
+      });
+    }
+
+    // Add new or update existing mirror texts
+    for (const st of sourceTexts) {
+      const existingText = await fastify.models.Text.findOne({
+        where: { userId: ownerUserId, folderId: mirrorId, sourceTextId: (st as any).id },
+      });
+      if (!existingText) {
+        const newTitle = await uniqueTextTitle(fastify, ownerUserId, mirrorId, (st as any).title);
+        const createdText = await fastify.models.Text.create({
+          userId: ownerUserId,
+          folderId: mirrorId,
+          title: newTitle,
+          uzRaw: (st as any).uzRaw,
+          enRaw: (st as any).enRaw,
+          sourceTextId: (st as any).id,
+        });
+        const sentences = await fastify.models.Sentence.findAll({
+          where: { textId: (st as any).id },
+          order: [['index', 'ASC']],
+          attributes: ['index', 'uz', 'en'],
+        });
+        if (sentences.length > 0) {
+          const toCreate = sentences.map((s: any) => ({
+            textId: (createdText as any).id,
+            index: s.index,
+            uz: s.uz,
+            en: s.en,
+          }));
+          await fastify.models.Sentence.bulkCreate(toCreate);
+        }
+      } else {
+        // Update mirror text if source changed (compare fields)
+        const needUpdate =
+          (existingText as any).title !== (st as any).title ||
+          (existingText as any).uzRaw !== (st as any).uzRaw ||
+          (existingText as any).enRaw !== (st as any).enRaw;
+        if (needUpdate) {
+          await (existingText as any).update({
+            title: (st as any).title,
+            uzRaw: (st as any).uzRaw,
+            enRaw: (st as any).enRaw,
+          });
+          // Rebuild sentences from source
+          const srcSentences = await fastify.models.Sentence.findAll({
+            where: { textId: (st as any).id },
+            order: [['index', 'ASC']],
+            attributes: ['index', 'uz', 'en'],
+          });
+          await fastify.models.Sentence.destroy({
+            where: { textId: (existingText as any).id },
+          });
+          if (srcSentences.length > 0) {
+            const toCreate = srcSentences.map((s: any) => ({
+              textId: (existingText as any).id,
+              index: s.index,
+              uz: s.uz,
+              en: s.en,
+            }));
+            await fastify.models.Sentence.bulkCreate(toCreate);
+          }
+        }
+      }
+    }
+  }
+}
+
 const foldersRoutes: FastifyPluginAsync = async (fastify) => {
   const bases = ['/folders', '/api/folders'];
 
@@ -168,6 +343,12 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
         const parent = await fastify.models.Folder.findOne({ where: { id: parentId, userId } });
         if (!parent) {
           return reply.code(404).send({ error: 'Parent not found' });
+        }
+        // If parent is a mirrored folder, sync it before listing children
+        if ((parent as any).sourceFolderId && (parent as any).sourceOwnerUserId) {
+          try {
+            await syncMirroredFolderTree(fastify, userId, parentId);
+          } catch {}
         }
       }
 
@@ -456,6 +637,26 @@ const foldersRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.code(201).send({ id: newRootId });
+    });
+
+    // POST sync -> synchronize a mirrored folder with its global source
+    fastify.post(`${base}/:id/sync`, async (request, reply) => {
+      const userId = getUserId(request);
+      if (!userId) return reply.code(401).send({ error: 'Unauthorized' });
+      const id = Number((request.params as any).id);
+      if (!Number.isFinite(id)) return reply.code(400).send({ error: 'Invalid id' });
+      const folder = await fastify.models.Folder.findOne({ where: { id, userId } });
+      if (!folder) return reply.code(404).send({ error: 'Not found' });
+      if (!(folder as any).sourceFolderId || !(folder as any).sourceOwnerUserId) {
+        return reply.code(400).send({ error: 'Folder is not an imported mirror' });
+      }
+      try {
+        await syncMirroredFolderTree(fastify, userId, id);
+        return reply.code(204).send();
+      } catch (err) {
+        request.log.error({ err }, 'Failed to sync folder');
+        return reply.code(500).send({ error: 'Failed to sync folder' });
+      }
     });
   }
 };

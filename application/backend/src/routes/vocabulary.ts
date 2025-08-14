@@ -72,6 +72,7 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
         translation: created.translation,
         note: created.note,
         language: (created as any).language ?? null,
+        createdAt: (created as any).createdAt,
       });
     });
 
@@ -122,6 +123,7 @@ const vocabularyRoutes: FastifyPluginAsync = async (fastify) => {
         translation: (item as any).translation,
         note: (item as any).note,
         language: (item as any).language ?? null,
+        createdAt: (item as any).createdAt,
       });
     });
 

@@ -96,6 +96,14 @@ const textsRoutes: FastifyPluginAsync = async (fastify) => {
       const folder = await fastify.models.Folder.findOne({ where: { id: folderId, userId } });
       if (!folder) return reply.code(404).send({ error: 'Folder not found' });
 
+      // If folder is a mirrored folder, sync before listing texts
+      if ((folder as any).sourceFolderId && (folder as any).sourceOwnerUserId) {
+        try {
+          const { syncMirroredFolderTree } = await import('./folders');
+          await syncMirroredFolderTree(fastify, userId, folderId);
+        } catch {}
+      }
+
       const texts = await fastify.models.Text.findAll({
         where: { userId, folderId },
         order: [['createdAt', 'DESC']],
@@ -116,6 +124,43 @@ const textsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const text = await fastify.models.Text.findOne({ where: { id, userId } });
       if (!text) return reply.code(404).send({ error: 'Not found' });
+
+      // If this text is mirrored from a source, refresh it if source has newer content
+      const sourceTextId = (text as any).sourceTextId as number | null;
+      if (sourceTextId) {
+        try {
+          const src = await fastify.models.Text.findOne({ where: { id: sourceTextId } });
+          if (src) {
+            const needsUpdate =
+              (text as any).title !== (src as any).title ||
+              (text as any).uzRaw !== (src as any).uzRaw ||
+              (text as any).enRaw !== (src as any).enRaw;
+            if (needsUpdate) {
+              await (text as any).update({
+                title: (src as any).title,
+                uzRaw: (src as any).uzRaw,
+                enRaw: (src as any).enRaw,
+              });
+              // Rebuild sentences from source
+              const srcSentences = await fastify.models.Sentence.findAll({
+                where: { textId: sourceTextId },
+                order: [['index', 'ASC']],
+                attributes: ['index', 'uz', 'en'],
+              });
+              await fastify.models.Sentence.destroy({ where: { textId: id } });
+              if (srcSentences.length > 0) {
+                const toCreate = srcSentences.map((s: any) => ({
+                  textId: id,
+                  index: s.index,
+                  uz: s.uz,
+                  en: s.en,
+                }));
+                await fastify.models.Sentence.bulkCreate(toCreate);
+              }
+            }
+          }
+        } catch {}
+      }
 
       const sentences = await fastify.models.Sentence.findAll({
         where: { textId: id },

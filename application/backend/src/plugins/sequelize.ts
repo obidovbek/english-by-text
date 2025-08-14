@@ -47,6 +47,8 @@ class FolderModel extends Model<
   declare name: string;
   declare parentId: number | null;
   declare isGlobal: CreationOptional<boolean>;
+  declare sourceFolderId: number | null;
+  declare sourceOwnerUserId: number | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -63,6 +65,7 @@ class TextModel extends Model<InferAttributes<TextModel>, InferCreationAttribute
   declare uzRaw: string;
   declare enRaw: string;
   declare lastIndex: CreationOptional<number>;
+  declare sourceTextId: number | null;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -213,6 +216,16 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
         allowNull: false,
         defaultValue: false,
       },
+      sourceFolderId: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        defaultValue: null,
+      },
+      sourceOwnerUserId: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        defaultValue: null,
+      },
       createdAt: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -242,6 +255,7 @@ const sequelizePlugin: FastifyPluginAsync = async (fastify) => {
       uzRaw: { type: DataTypes.TEXT, allowNull: false },
       enRaw: { type: DataTypes.TEXT, allowNull: false },
       lastIndex: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      sourceTextId: { type: DataTypes.BIGINT, allowNull: true, defaultValue: null },
       createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
       updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     },
