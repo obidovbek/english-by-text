@@ -151,7 +151,8 @@ export default function Vocabulary() {
       if (!map.has(day)) map.set(day, []);
       map.get(day)!.push(it);
     }
-    for (const [k, arr] of map.entries()) {
+    //k
+    for (const [, arr] of map.entries()) {
       arr.sort((a, b) => String(b.id).localeCompare(String(a.id)));
     }
     return map;
