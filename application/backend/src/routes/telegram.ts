@@ -72,6 +72,83 @@ const telegramRoutes: FastifyPluginAsync = async (fastify) => {
       }
     });
   }
+
+  // Telegram webhook for /start command
+  const webhookPaths = ['/telegram/webhook', '/api/telegram/webhook'];
+  for (const p of webhookPaths) {
+    fastify.post(p, async (request, reply) => {
+      try {
+        const update = request.body as any;
+        request.log.info({ update }, 'Received Telegram webhook update');
+
+        const message = update?.message;
+        const chatId: number | undefined = message?.chat?.id;
+        const text: string | undefined = message?.text;
+
+        request.log.info({ chatId, text }, 'Processing webhook message');
+
+        if (!chatId) {
+          request.log.warn('No chat ID in message, ignoring');
+          return reply.send({ ok: true });
+        }
+
+        // If not /start, ignore silently
+        if (!text || !text.toLowerCase().startsWith('/start')) {
+          request.log.info({ text }, 'Not a /start message, ignoring');
+          return reply.send({ ok: true, ignored: true });
+        }
+
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (!botToken) {
+          request.log.error('TELEGRAM_BOT_TOKEN not set');
+          return reply.send({ ok: true });
+        }
+        const apiBase = `https://api.telegram.org/bot${botToken}`;
+
+        // Try to find existing user by telegramId
+        const user = await fastify.models.User.findOne({ where: { telegramId: chatId } });
+        request.log.info({ userId: user?.id, hasUser: !!user }, 'User lookup result');
+
+        // Determine locale: user's languageCode if available, else message.from.language_code, else uz
+        const preferredLang: string | undefined =
+          (user as any)?.languageCode || message?.from?.language_code || undefined;
+        const locale = pickSupportedLocale(preferredLang);
+        const firstName: string = (user as any)?.firstName || message?.from?.first_name || '';
+
+        request.log.info({ preferredLang, locale, firstName }, 'Greeting parameters');
+
+        const lastVariant = (user as any)?.lastGreetingVariant ?? null;
+        const { text: greeting, index } = nextGreeting(locale, firstName || "do'st", lastVariant);
+
+        request.log.info({ greeting, index }, 'Generated greeting');
+
+        const sendResp = await fetch(`${apiBase}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: greeting }),
+        });
+
+        const sendJson = await sendResp.json().catch(() => null as any);
+        request.log.info({ sendStatus: sendResp.status, sendJson }, 'Telegram API response');
+
+        const newMsgId = sendJson?.result?.message_id as number | undefined;
+
+        if (user) {
+          const updates: any = { lastGreetingVariant: index };
+          if (newMsgId && Number.isFinite(newMsgId)) {
+            updates.lastGreetingMessageId = newMsgId;
+          }
+          await (user as any).update(updates);
+          request.log.info({ updates }, 'Updated user greeting state');
+        }
+
+        return reply.send({ ok: true });
+      } catch (err) {
+        request.log.error({ err }, 'Telegram webhook error');
+        return reply.send({ ok: true });
+      }
+    });
+  }
 };
 
 export default telegramRoutes;

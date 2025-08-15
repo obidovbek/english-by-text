@@ -11,7 +11,7 @@ export function shouldSendGreetingNow(telegramId: number, debounceMs = 5000): bo
 export type SupportedLocale = 'uz' | 'ru' | 'en' | 'ko' | 'tr' | 'de';
 
 export function pickSupportedLocale(lang?: string): SupportedLocale {
-  if (!lang) return 'en';
+  if (!lang) return 'uz';
   const l = lang.toLowerCase();
   if (l.startsWith('uz')) return 'uz';
   if (l.startsWith('ru')) return 'ru';
@@ -19,7 +19,7 @@ export function pickSupportedLocale(lang?: string): SupportedLocale {
   if (l.startsWith('de')) return 'de';
   if (l.startsWith('ko') || l.startsWith('kr')) return 'ko';
   if (l.startsWith('tr')) return 'tr';
-  return 'en';
+  return 'uz';
 }
 
 const GREETINGS: Record<SupportedLocale, string[]> = {

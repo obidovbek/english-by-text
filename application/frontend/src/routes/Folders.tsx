@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getJSON, postJSON, deleteJSON, patchJSON } from "../api/client";
 import {
@@ -25,8 +25,16 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Tooltip,
+  Popover,
 } from "@mui/material";
-import { ArrowBack, CreateNewFolder, MoreVert } from "@mui/icons-material";
+import {
+  ArrowBack,
+  CreateNewFolder,
+  MoreVert,
+  Home as HomeIcon,
+  HelpOutline as HelpOutlineIcon,
+} from "@mui/icons-material";
 import { t } from "../i18n";
 import { getJSON as apiGet, postJSON as apiPost } from "../api/client";
 import { useNavigate } from "react-router-dom";
@@ -71,6 +79,15 @@ export default function Folders() {
   const [params, setParams] = useSearchParams();
   const parentIdParam = params.get("parentId");
   const parentId = parentIdParam ? Number(parentIdParam) : null;
+
+  // Refs for tour anchors
+  const homeRef = useRef<HTMLButtonElement | null>(null);
+  const backRef = useRef<HTMLButtonElement | null>(null);
+  const breadcrumbsRef = useRef<HTMLDivElement | null>(null);
+  const addTextRef = useRef<HTMLButtonElement | null>(null);
+  const vocabRef = useRef<HTMLButtonElement | null>(null);
+  const libraryRef = useRef<HTMLButtonElement | null>(null);
+  const createFolderRef = useRef<HTMLButtonElement | null>(null);
 
   const [folders, setFolders] = useState<FolderDTO[]>([]);
   const [texts, setTexts] = useState<TextListItem[]>([]);
@@ -117,6 +134,98 @@ export default function Folders() {
     null
   );
   const [menuType, setMenuType] = useState<"folder" | "text" | null>(null);
+
+  // Folders page tour
+  type Step = {
+    key: string;
+    title: string;
+    body: string;
+    anchor?: () => HTMLElement | null;
+  };
+  const steps = useMemo<Step[]>(() => {
+    return [
+      {
+        key: "overview",
+        title: t("tourFoldersOverviewTitle"),
+        body: t("tourFoldersOverviewBody"),
+      },
+      {
+        key: "home",
+        title: t("tourHomeTitle"),
+        body: t("tourHomeBody"),
+        anchor: () => homeRef.current,
+      },
+      {
+        key: "back",
+        title: t("tourBackTitle"),
+        body: t("tourBackBody"),
+        anchor: () => backRef.current,
+      },
+      {
+        key: "breadcrumbs",
+        title: t("tourBreadcrumbsTitle"),
+        body: t("tourBreadcrumbsBody"),
+        anchor: () => breadcrumbsRef.current,
+      },
+      {
+        key: "addText",
+        title: t("tourAddTextTitle"),
+        body: t("tourAddTextBody"),
+        anchor: () => addTextRef.current,
+      },
+      {
+        key: "library",
+        title: t("tourLibraryTitle"),
+        body: t("tourLibraryBody"),
+        anchor: () => libraryRef.current,
+      },
+      {
+        key: "createFolder",
+        title: t("tourCreateFolderTitle"),
+        body: t("tourCreateFolderBody"),
+        anchor: () => createFolderRef.current,
+      },
+    ];
+  }, []);
+  const [openTour, setOpenTour] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+  useEffect(() => {
+    try {
+      const key = "tour-folders-v1-done";
+      if (!localStorage.getItem(key)) {
+        setOpenTour(true);
+        setTourIndex(0);
+      }
+    } catch {}
+  }, []);
+  const currentStep = openTour ? steps[tourIndex] : undefined;
+  function nextIndex(from: number): number {
+    for (let i = from + 1; i < steps.length; i++) {
+      const s = steps[i];
+      if (!s.anchor || s.anchor()) return i;
+    }
+    return -1;
+  }
+  const hasNext = nextIndex(tourIndex) !== -1;
+  function closeTour() {
+    try {
+      localStorage.setItem("tour-folders-v1-done", "1");
+    } catch {}
+    setOpenTour(false);
+  }
+  function goNext() {
+    const ni = nextIndex(tourIndex);
+    if (ni === -1) closeTour();
+    else setTourIndex(ni);
+  }
+
+  function restartTour() {
+    try {
+      localStorage.removeItem("tour-folders-v1-done");
+    } catch {}
+    setOpenTour(true);
+    setTourIndex(0);
+  }
 
   useEffect(() => {
     const handler = () => setUserId(localStorage.getItem("userId"));
@@ -440,8 +549,31 @@ export default function Folders() {
   return (
     <Box sx={{ p: 2, bgcolor: "background.default", minHeight: "100vh" }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+        <IconButton
+          ref={homeRef}
+          aria-label={t("home")}
+          onClick={() => navigate("/")}
+          sx={{
+            bgcolor:
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
+            borderRadius: 2,
+            color: "text.primary",
+            "&:hover": {
+              bgcolor:
+                theme.palette.mode === "dark"
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(0, 0, 0, 0.2)",
+              color: "primary.main",
+            },
+          }}
+        >
+          <HomeIcon />
+        </IconButton>
         {parentId && (
           <IconButton
+            ref={backRef}
             aria-label={t("back")}
             onClick={async () => {
               try {
@@ -526,6 +658,7 @@ export default function Folders() {
         </Typography>
         {parentId && (
           <Button
+            ref={addTextRef}
             variant="outlined"
             onClick={() => setTextDialogOpen(true)}
             disabled={!userId}
@@ -547,6 +680,7 @@ export default function Folders() {
           </Button>
         )}
         <Button
+          ref={vocabRef}
           variant="outlined"
           onClick={() => navigate("/vocabulary")}
           sx={{ mr: 1 }}
@@ -554,6 +688,7 @@ export default function Folders() {
           {t("vocabulary")}
         </Button>
         <Button
+          ref={libraryRef}
           variant="outlined"
           onClick={() => navigate("/library")}
           sx={{ mr: 1 }}
@@ -561,6 +696,7 @@ export default function Folders() {
           {t("library")}
         </Button>
         <Button
+          ref={createFolderRef}
           variant="contained"
           startIcon={<CreateNewFolder sx={{ color: "primary.contrastText" }} />}
           onClick={() => setDialogOpen(true)}
@@ -576,9 +712,14 @@ export default function Folders() {
             },
           }}
         ></Button>
+        <Tooltip title={t("tourRestart")}>
+          <IconButton aria-label="show tour" onClick={restartTour}>
+            <HelpOutlineIcon />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
-      <Breadcrumbs sx={{ mb: 2 }}>
+      <Breadcrumbs sx={{ mb: 2 }} ref={breadcrumbsRef as any}>
         {crumbs.map((c, idx) => (
           <MuiLink
             key={idx}
@@ -1331,6 +1472,34 @@ export default function Folders() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Guided Tour UI */}
+      {openTour && currentStep && (
+        <Popover
+          open={Boolean(!currentStep.anchor || currentStep.anchor())}
+          anchorEl={currentStep.anchor ? currentStep.anchor() : null}
+          onClose={closeTour}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          transformOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Box sx={{ p: 2, maxWidth: 320 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              {currentStep.title}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              {currentStep.body}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+              <Button size="small" onClick={closeTour}>
+                {t("tourSkip")}
+              </Button>
+              <Button size="small" variant="contained" onClick={goNext}>
+                {hasNext ? t("tourNext") : t("tourDone")}
+              </Button>
+            </Box>
+          </Box>
+        </Popover>
+      )}
 
       <Snackbar
         open={Boolean(toast)}

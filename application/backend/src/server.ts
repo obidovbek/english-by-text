@@ -9,6 +9,7 @@ import tokensRoutes from './routes/tokens';
 import vocabularyRoutes from './routes/vocabulary';
 import telegramRoutes from './routes/telegram';
 import studyRoutes from './routes/study';
+import usersRoutes from './routes/users';
 
 const app = Fastify({
   logger: true,
@@ -32,6 +33,7 @@ app.register(tokensRoutes);
 app.register(vocabularyRoutes);
 app.register(telegramRoutes);
 app.register(studyRoutes);
+app.register(usersRoutes);
 
 const port = Number(process.env.PORT) || 4000;
 const host = '0.0.0.0';

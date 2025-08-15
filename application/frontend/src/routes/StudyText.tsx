@@ -17,8 +17,10 @@ import {
   DialogActions,
   useTheme,
   useMediaQuery,
+  Popover,
+  Tooltip,
 } from "@mui/material";
-import { ArrowBack } from "@mui/icons-material";
+import { ArrowBack, HelpOutline as HelpOutlineIcon } from "@mui/icons-material";
 import { t } from "../i18n";
 
 interface SentenceDTO {
@@ -59,6 +61,133 @@ export default function StudyText() {
   const [showCorrect, setShowCorrect] = useState(false);
   const [buildPool, setBuildPool] = useState<string[]>([]);
   const [buildAnswer, setBuildAnswer] = useState<string[]>([]);
+
+  // Refs for tour anchors
+  const buildAreaRef = useRef<HTMLDivElement | null>(null);
+  const poolRef = useRef<HTMLDivElement | null>(null);
+  const vocabBtnRef = useRef<HTMLButtonElement | null>(null);
+  const editBtnRef = useRef<HTMLButtonElement | null>(null);
+  const revealBtnRef = useRef<HTMLButtonElement | null>(null);
+  const resetBtnRef = useRef<HTMLButtonElement | null>(null);
+  const checkBtnRef = useRef<HTMLButtonElement | null>(null);
+  const zoomMinusRef = useRef<HTMLButtonElement | null>(null);
+  const zoomPlusRef = useRef<HTMLButtonElement | null>(null);
+  const navPrevRef = useRef<HTMLButtonElement | null>(null);
+  const navNextRef = useRef<HTMLButtonElement | null>(null);
+  const progressRef = useRef<HTMLSpanElement | null>(null);
+
+  // Study page tour
+  type Step = {
+    key: string;
+    title: string;
+    body: string;
+    anchor?: () => HTMLElement | null;
+  };
+  const studySteps: Step[] = [
+    {
+      key: "overview",
+      title: t("tourStudyOverviewTitle"),
+      body: t("tourStudyOverviewBody"),
+    },
+    {
+      key: "build",
+      title: t("tourBuildAreaTitle"),
+      body: t("tourBuildAreaBody"),
+      anchor: () => buildAreaRef.current,
+    },
+    {
+      key: "pool",
+      title: t("tourWordPoolTitle"),
+      body: t("tourWordPoolBody"),
+      anchor: () => poolRef.current,
+    },
+    {
+      key: "vocab",
+      title: t("tourVocabButtonTitle"),
+      body: t("tourVocabButtonBody"),
+      anchor: () => vocabBtnRef.current,
+    },
+    {
+      key: "edit",
+      title: t("tourEditTokensTitle"),
+      body: t("tourEditTokensBody"),
+      anchor: () => editBtnRef.current,
+    },
+    {
+      key: "reveal",
+      title: t("tourRevealTitle"),
+      body: t("tourRevealBody"),
+      anchor: () => revealBtnRef.current,
+    },
+    {
+      key: "reset",
+      title: t("tourResetTitle"),
+      body: t("tourResetBody"),
+      anchor: () => resetBtnRef.current,
+    },
+    {
+      key: "check",
+      title: t("tourCheckTitle"),
+      body: t("tourCheckBody"),
+      anchor: () => checkBtnRef.current,
+    },
+    {
+      key: "zoom",
+      title: t("tourZoomTitle"),
+      body: t("tourZoomBody"),
+      anchor: () => zoomPlusRef.current || zoomMinusRef.current,
+    },
+    {
+      key: "nav",
+      title: t("tourNavTitle"),
+      body: t("tourNavBody"),
+      anchor: () => navNextRef.current || navPrevRef.current,
+    },
+    {
+      key: "progress",
+      title: t("tourProgressTitle"),
+      body: t("tourProgressBody"),
+      anchor: () => progressRef.current as any,
+    },
+  ];
+  const [openTour, setOpenTour] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+  useEffect(() => {
+    try {
+      const key = "tour-study-v1-done";
+      if (!localStorage.getItem(key)) {
+        setOpenTour(true);
+        setTourIndex(0);
+      }
+    } catch {}
+  }, []);
+  const currentStep = openTour ? studySteps[tourIndex] : undefined;
+  function nextIndex(from: number): number {
+    for (let i = from + 1; i < studySteps.length; i++) {
+      const s = studySteps[i];
+      if (!s.anchor || s.anchor()) return i;
+    }
+    return -1;
+  }
+  const hasNext = nextIndex(tourIndex) !== -1;
+  function closeTour() {
+    try {
+      localStorage.setItem("tour-study-v1-done", "1");
+    } catch {}
+    setOpenTour(false);
+  }
+  function goNext() {
+    const ni = nextIndex(tourIndex);
+    if (ni === -1) closeTour();
+    else setTourIndex(ni);
+  }
+  function restartTour() {
+    try {
+      localStorage.removeItem("tour-study-v1-done");
+    } catch {}
+    setOpenTour(true);
+    setTourIndex(0);
+  }
 
   // Add-to-vocabulary dialog
   const [vocabOpen, setVocabOpen] = useState(false);
@@ -182,13 +311,10 @@ export default function StudyText() {
       timerRef.current = null;
       return;
     }
-    if (!text) return;
+    const len = text?.sentences.length ?? 0;
+    if (len === 0) return;
     timerRef.current = window.setInterval(() => {
-      setIdx((i) => {
-        if (i + 1 < (text?.sentences.length ?? 0)) return i + 1;
-        setAutoPlay(false);
-        return i;
-      });
+      setIdx((i) => (i + 1 < len ? i + 1 : 0));
     }, intervalMs);
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
@@ -269,7 +395,7 @@ export default function StudyText() {
     if (built === expected) {
       setToast(t("correct"));
       setShowCorrect(false);
-      if (canNext) setTimeout(() => setIdx((i) => i + 1), 400);
+      setTimeout(() => setIdx((i) => (i + 1 < total ? i + 1 : 0)), 400);
     } else {
       setToast(t("incorrect"));
       setShowCorrect(true);
@@ -283,14 +409,16 @@ export default function StudyText() {
     setShowCorrect(true);
   }
 
-  const canPrev = idx > 0;
-  const canNext = idx + 1 < total;
+  const canPrev = total > 1;
+  const canNext = total > 1;
 
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") setIdx((i) => (i > 0 ? i - 1 : i));
-      if (e.key === "ArrowRight") setIdx((i) => (i + 1 < total ? i + 1 : i));
+      if (e.key === "ArrowLeft")
+        setIdx((i) => (i > 0 ? i - 1 : total ? total - 1 : 0));
+      if (e.key === "ArrowRight")
+        setIdx((i) => (i + 1 < total ? i + 1 : total ? 0 : i));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -406,7 +534,16 @@ export default function StudyText() {
         >
           {text?.title ?? "..."}
         </Typography>
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+        <Tooltip title={t("tourRestart")}>
+          <IconButton aria-label="show tour" onClick={restartTour}>
+            <HelpOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Typography
+          variant="caption"
+          sx={{ color: "text.secondary" }}
+          ref={progressRef as any}
+        >
           {total ? `${idx + 1}/${total}` : ""}
         </Typography>
       </Stack>
@@ -484,6 +621,7 @@ export default function StudyText() {
 
           {/* English sentence building area - center */}
           <Box
+            ref={buildAreaRef}
             sx={{
               mb: 2,
               px: 1,
@@ -535,11 +673,6 @@ export default function StudyText() {
                         e.preventDefault();
                         openVocabDialog(w);
                       }}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("application/x-ebt-word", w);
-                        e.dataTransfer.effectAllowed = "copyMove";
-                      }}
                       sx={{
                         borderRadius: 1.5,
                         px: 1.2,
@@ -579,7 +712,7 @@ export default function StudyText() {
             </Box>
 
             {/* Word pool at bottom */}
-            <Box sx={{ mt: "auto", mb: 1 }}>
+            <Box sx={{ mt: "auto", mb: 1 }} ref={poolRef}>
               <Stack
                 direction="row"
                 spacing={0.5}
@@ -598,11 +731,6 @@ export default function StudyText() {
                     onContextMenu={(e) => {
                       e.preventDefault();
                       openVocabDialog(w);
-                    }}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("application/x-ebt-word", w);
-                      e.dataTransfer.effectAllowed = "copyMove";
                     }}
                     sx={{
                       borderRadius: 1.5,
@@ -757,26 +885,11 @@ export default function StudyText() {
           >
             <Button
               variant="text"
+              ref={zoomMinusRef}
               onClick={() =>
                 setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 100) / 100))
               }
               aria-label={t("zoomOut")}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  color: "primary.main",
-                  backgroundColor: "action.hover",
-                },
-                minWidth: 36,
-                minHeight: 32 * fontScale,
-                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: 2,
-                "&:active": {
-                  transform: "scale(0.95)",
-                },
-              }}
             >
               -
             </Button>
@@ -787,33 +900,17 @@ export default function StudyText() {
                 alignSelf: "center",
                 minWidth: 44,
                 textAlign: "center",
-                fontSize: `${(0.78 * fontScale).toFixed(3)}rem`,
               }}
             >
               {Math.round(zoom * 100)}%
             </Typography>
             <Button
               variant="text"
+              ref={zoomPlusRef}
               onClick={() =>
                 setZoom((z) => Math.min(2, Math.round((z + 0.1) * 100) / 100))
               }
               aria-label={t("zoomIn")}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  color: "primary.main",
-                  backgroundColor: "action.hover",
-                },
-                minWidth: 36,
-                minHeight: 32 * fontScale,
-                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: 2,
-                "&:active": {
-                  transform: "scale(0.95)",
-                },
-              }}
             >
               +
             </Button>
@@ -821,22 +918,6 @@ export default function StudyText() {
               variant="text"
               onClick={() => setZoom(1)}
               aria-label={t("resetZoom")}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  color: "primary.main",
-                  backgroundColor: "action.hover",
-                },
-                minWidth: 52,
-                minHeight: 32 * fontScale,
-                fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
-                fontWeight: 600,
-                textTransform: "none",
-                borderRadius: 2,
-                "&:active": {
-                  transform: "scale(0.95)",
-                },
-              }}
             >
               100%
             </Button>
@@ -848,6 +929,34 @@ export default function StudyText() {
         >
           {t("noSentences")}
         </Typography>
+      )}
+
+      {/* Guided Tour UI */}
+      {openTour && currentStep && (
+        <Popover
+          open={Boolean(!currentStep.anchor || currentStep.anchor())}
+          anchorEl={currentStep.anchor ? currentStep.anchor() : null}
+          onClose={closeTour}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          transformOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Box sx={{ p: 2, maxWidth: 320 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              {currentStep.title}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              {currentStep.body}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+              <Button size="small" onClick={closeTour}>
+                {t("tourSkip")}
+              </Button>
+              <Button size="small" variant="contained" onClick={goNext}>
+                {hasNext ? t("tourNext") : t("tourDone")}
+              </Button>
+            </Box>
+          </Box>
+        </Popover>
       )}
 
       {/* Fixed Footer with Action Buttons */}
@@ -903,6 +1012,7 @@ export default function StudyText() {
                   if (!word) return;
                   openVocabDialog(word);
                 }}
+                ref={vocabBtnRef}
                 sx={{
                   minWidth: 90,
                   borderRadius: 2,
@@ -924,6 +1034,7 @@ export default function StudyText() {
               <Button
                 variant="text"
                 onClick={() => setShowTokensEditor((v) => !v)}
+                ref={editBtnRef}
                 sx={{
                   color: showTokensEditor ? "primary.main" : "text.secondary",
                   "&:hover": {
@@ -946,6 +1057,7 @@ export default function StudyText() {
               <Button
                 variant="text"
                 onClick={revealBuilt}
+                ref={revealBtnRef}
                 sx={{
                   color: "text.secondary",
                   "&:hover": {
@@ -973,6 +1085,7 @@ export default function StudyText() {
                     (currentSentence?.en || "").split(/\s+/).filter(Boolean)
                   );
                 }}
+                ref={resetBtnRef}
                 sx={{
                   color: "text.primary",
                   borderColor:
@@ -1000,6 +1113,7 @@ export default function StudyText() {
               <Button
                 variant="contained"
                 onClick={checkBuilt}
+                ref={checkBtnRef}
                 sx={{
                   backgroundColor: "primary.main",
                   color: "primary.contrastText",
@@ -1030,7 +1144,10 @@ export default function StudyText() {
               <Button
                 variant="outlined"
                 disabled={!canPrev}
-                onClick={() => setIdx((i) => i - 1)}
+                onClick={() =>
+                  setIdx((i) => (i > 0 ? i - 1 : total ? total - 1 : 0))
+                }
+                ref={navPrevRef}
                 sx={{
                   color: "text.primary",
                   borderColor:
@@ -1065,7 +1182,8 @@ export default function StudyText() {
               <Button
                 variant="contained"
                 disabled={!canNext}
-                onClick={() => setIdx((i) => i + 1)}
+                onClick={() => setIdx((i) => (i + 1 < total ? i + 1 : 0))}
+                ref={navNextRef}
                 sx={{
                   backgroundColor: "primary.main",
                   color: "primary.contrastText",
