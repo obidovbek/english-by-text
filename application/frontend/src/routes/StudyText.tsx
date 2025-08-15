@@ -54,7 +54,8 @@ export default function StudyText() {
   const [idx, setIdx] = useState(0);
   const [tokens, setTokens] = useState<TokenDTO[] | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [autoPlay, setAutoPlay] = useState(false);
+  //setAutoPlay
+  const [autoPlay] = useState(false);
   const [intervalMs] = useState(3000);
   const timerRef = useRef<number | null>(null);
   const progressTimerRef = useRef<number | null>(null);

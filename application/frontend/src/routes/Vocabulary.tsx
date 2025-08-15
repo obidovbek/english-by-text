@@ -754,39 +754,39 @@ export default function Vocabulary() {
     }
   }
 
-  async function runSessionFrom(startIdx: number) {
-    for (let i = startIdx; i < sessionOrderRef.current.length; i += 1) {
-      if (!sessionActiveRef.current) break;
-      const id = sessionOrderRef.current[i];
-      const item = items.find((x) => String(x.id) === id);
-      if (!item) continue;
-      const tr = (item.translation || "").trim();
-      setSessionStatus(
-        `${i + 1}/${sessionOrderRef.current.length}: ${t("listenAction")}`
-      );
-      if (tr) {
-        await playTTS(tr, detectTtsLanguage(tr));
-      }
-      if (!sessionActiveRef.current) break;
-      setSessionStatus(
-        `${i + 1}/${sessionOrderRef.current.length}: ${t("speakAction")}`
-      );
-      const result = await recordAndEvaluate(id, item.word, "en");
-      if (!sessionActiveRef.current) break;
-      if (result && result.correct) {
-        await playTTS(
-          result.transcript || item.word,
-          detectTtsLanguage(result?.transcript || item.word)
-        );
-      } else {
-        await playTTS(item.word, detectTtsLanguage(item.word));
-      }
-      if (!sessionActiveRef.current) break;
-      setSessionIndex(i + 1);
-    }
-    setSessionActive(false);
-    setSessionStatus("");
-  }
+  // async function runSessionFrom(startIdx: number) {
+  //   for (let i = startIdx; i < sessionOrderRef.current.length; i += 1) {
+  //     if (!sessionActiveRef.current) break;
+  //     const id = sessionOrderRef.current[i];
+  //     const item = items.find((x) => String(x.id) === id);
+  //     if (!item) continue;
+  //     const tr = (item.translation || "").trim();
+  //     setSessionStatus(
+  //       `${i + 1}/${sessionOrderRef.current.length}: ${t("listenAction")}`
+  //     );
+  //     if (tr) {
+  //       await playTTS(tr, detectTtsLanguage(tr));
+  //     }
+  //     if (!sessionActiveRef.current) break;
+  //     setSessionStatus(
+  //       `${i + 1}/${sessionOrderRef.current.length}: ${t("speakAction")}`
+  //     );
+  //     const result = await recordAndEvaluate(id, item.word, "en");
+  //     if (!sessionActiveRef.current) break;
+  //     if (result && result.correct) {
+  //       await playTTS(
+  //         result.transcript || item.word,
+  //         detectTtsLanguage(result?.transcript || item.word)
+  //       );
+  //     } else {
+  //       await playTTS(item.word, detectTtsLanguage(item.word));
+  //     }
+  //     if (!sessionActiveRef.current) break;
+  //     setSessionIndex(i + 1);
+  //   }
+  //   setSessionActive(false);
+  //   setSessionStatus("");
+  // }
 
   function startPractice() {
     const initialSource =
