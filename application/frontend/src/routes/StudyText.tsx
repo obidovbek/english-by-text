@@ -231,6 +231,11 @@ export default function StudyText() {
     return scaled;
   }, [zoom, isSmallScreen]);
 
+  const controlFontSizeRem = isSmallScreen ? 0.85 : 0.9;
+  const navFontSizeRem = isSmallScreen ? 0.9 : 0.95;
+  const controlMinHeightPx = isSmallScreen ? 34 : 36;
+  const navMinHeightPx = isSmallScreen ? 38 : 42;
+
   // Load text
   useEffect(() => {
     let cancelled = false;
@@ -891,6 +896,11 @@ export default function StudyText() {
                 setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 100) / 100))
               }
               aria-label={t("zoomOut")}
+              sx={{
+                minWidth: 36,
+                lineHeight: 1,
+                fontSize: isSmallScreen ? "1rem" : "1.1rem",
+              }}
             >
               -
             </Button>
@@ -912,6 +922,11 @@ export default function StudyText() {
                 setZoom((z) => Math.min(2, Math.round((z + 0.1) * 100) / 100))
               }
               aria-label={t("zoomIn")}
+              sx={{
+                minWidth: 36,
+                lineHeight: 1,
+                fontSize: isSmallScreen ? "1rem" : "1.1rem",
+              }}
             >
               +
             </Button>
@@ -919,6 +934,10 @@ export default function StudyText() {
               variant="text"
               onClick={() => setZoom(1)}
               aria-label={t("resetZoom")}
+              sx={{
+                minHeight: controlMinHeightPx,
+                fontSize: `${controlFontSizeRem}rem`,
+              }}
             >
               100%
             </Button>
@@ -1024,8 +1043,8 @@ export default function StudyText() {
                     theme.palette.mode === "dark"
                       ? "rgba(255, 255, 255, 0.3)"
                       : "rgba(0, 0, 0, 0.3)",
-                  minHeight: 36 * fontScale,
-                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
+                  minHeight: controlMinHeightPx,
+                  fontSize: `${controlFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                 }}
@@ -1043,8 +1062,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36 * fontScale,
-                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
+                  minHeight: controlMinHeightPx,
+                  fontSize: `${controlFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1066,8 +1085,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36 * fontScale,
-                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
+                  minHeight: controlMinHeightPx,
+                  fontSize: `${controlFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1099,8 +1118,8 @@ export default function StudyText() {
                     backgroundColor: "action.hover",
                   },
                   minWidth: 70,
-                  minHeight: 36 * fontScale,
-                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
+                  minHeight: controlMinHeightPx,
+                  fontSize: `${controlFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1122,8 +1141,8 @@ export default function StudyText() {
                     backgroundColor: "primary.dark",
                   },
                   minWidth: 70,
-                  minHeight: 36 * fontScale,
-                  fontSize: `${(0.8 * fontScale).toFixed(3)}rem`,
+                  minHeight: controlMinHeightPx,
+                  fontSize: `${controlFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1168,8 +1187,8 @@ export default function StudyText() {
                         : "rgba(0, 0, 0, 0.12)",
                   },
                   minWidth: 80,
-                  minHeight: 40 * fontScale,
-                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
+                  minHeight: navMinHeightPx,
+                  fontSize: `${navFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,
@@ -1196,8 +1215,8 @@ export default function StudyText() {
                     color: "text.disabled",
                   },
                   minWidth: 80,
-                  minHeight: 40 * fontScale,
-                  fontSize: `${(0.85 * fontScale).toFixed(3)}rem`,
+                  minHeight: navMinHeightPx,
+                  fontSize: `${navFontSizeRem}rem`,
                   fontWeight: 600,
                   textTransform: "none",
                   borderRadius: 2,

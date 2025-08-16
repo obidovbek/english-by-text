@@ -1216,10 +1216,8 @@ export default function Vocabulary() {
   };
   const playPrompt = async () => {
     if (!currentPracticeItem) return;
-    const txt =
-      practicePrimary === "translation"
-        ? currentPracticeItem.translation
-        : currentPracticeItem.word;
+    // Always play the word for pronunciation practice
+    const txt = currentPracticeItem.word;
     if (!txt) return;
     await playTTS(txt, detectTtsLanguage(txt));
   };
