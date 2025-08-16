@@ -35,11 +35,11 @@ spec:
             - name: POSTGRES_HOST
               value: postgres-service-linguatext
             - name: STT_SERVICE_URL
-              value: http://stt:7860
+              value: http://stt.linguatext.svc.cluster.local:7860
             - name: PIPER_TTS_URL
-              value: http://tts-piper:8080/api/tts
+              value: http://tts-piper.linguatext.svc.cluster.local:8080/api/tts
             - name: COQUI_TTS_URL
-              value: http://tts-uz:5002/api/tts
+              value: http://tts-uz.linguatext.svc.cluster.local:5002/api/tts
             - name: PREFERRED_TTS_PROVIDER_UZ
               value: espeak
             - name: ESPEAK_VOICE_UZ

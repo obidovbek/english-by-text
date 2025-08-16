@@ -338,13 +338,24 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
         try {
           const json = await tryFetchJson(baseUrl, form);
           const text = json?.text || json?.transcript || '';
+          fastify.log.info({ baseUrl, success: true }, `STT request succeeded`);
           return reply.send({ text });
         } catch (e: any) {
           lastErr = e;
-          fastify.log.warn({ err: e }, `STT fetch failed at ${baseUrl}`);
+          fastify.log.error(
+            {
+              err: e,
+              baseUrl,
+              status: e?.status,
+              message: e?.message,
+            },
+            `STT fetch failed at ${baseUrl}`,
+          );
         }
       }
-      return reply.code(502).send({ error: lastErr?.message || 'STT unreachable' });
+      const errorMsg = `STT unreachable. Tried: ${candidates.join(', ')}. Last error: ${lastErr?.message || 'Unknown'}`;
+      fastify.log.error({ candidates, lastErr }, errorMsg);
+      return reply.code(502).send({ error: errorMsg });
     });
 
     fastify.post(`${base}/evaluate`, async (request, reply) => {
