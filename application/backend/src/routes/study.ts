@@ -307,17 +307,11 @@ const studyRoutes: FastifyPluginAsync = async (fastify) => {
       let buf: Buffer | null = null;
       if (Buffer.isBuffer(request.body)) {
         buf = request.body as Buffer;
+      } else if (request.body) {
+        // Handle other body types, convert to buffer
+        buf = Buffer.from(request.body as any);
       }
-      if (!buf) {
-        const chunks: Buffer[] = [];
-        await new Promise<void>((resolve, reject) => {
-          (request.raw as any)
-            .on('data', (c: Buffer) => chunks.push(c))
-            .on('end', () => resolve())
-            .on('error', reject);
-        });
-        buf = Buffer.concat(chunks);
-      }
+
       if (!buf || buf.length === 0) {
         return reply.code(400).send({ error: 'Empty audio payload' });
       }

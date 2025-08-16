@@ -13,14 +13,15 @@ import usersRoutes from './routes/users';
 
 const app = Fastify({
   logger: true,
+  bodyLimit: 50 * 1024 * 1024, // 50MB for audio uploads
 });
 
 // Accept raw/binary audio uploads (webm/wav/mpeg and generic octet-stream)
 app.addContentTypeParser(
   ['application/octet-stream', 'audio/webm', 'audio/wav', 'audio/mpeg', 'video/webm'],
-  function (_request, payload, done) {
-    // Do not consume the stream; pass it through so routes can read Buffer/stream
-    done(null, payload);
+  { parseAs: 'buffer' },
+  function (_request, body, done) {
+    done(null, body);
   },
 );
 

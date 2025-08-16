@@ -33,8 +33,10 @@ RUN npm run build
 FROM node:20-slim AS production
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apt-get update && apt-get install -y --no-install-recommends espeak-ng && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+COPY espeak-ng-data ./espeak-ng-data
 EXPOSE 4000
 CMD ["node", "dist/server.js"] 

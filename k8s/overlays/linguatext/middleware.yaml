@@ -6,3 +6,15 @@ spec:
   stripPrefix:
     prefixes:
       - /api
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: buffer-large
+spec:
+  buffering:
+    maxRequestBodyBytes: 52428800 # 50MB
+    memRequestBodyBytes: 1048576 # 1MB
+    maxResponseBodyBytes: 52428800 # 50MB
+    memResponseBodyBytes: 1048576 # 1MB
+    retryExpression: "IsNetworkError() && Attempts() <= 2"
